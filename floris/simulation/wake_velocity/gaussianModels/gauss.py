@@ -165,7 +165,7 @@ class Gauss(GaussianModel):
         r_tilde = (
             np.sqrt(
                 (y_locations - turbine_coord.x2 - delta) ** 2 + (z_locations - HH) ** 2,
-                dtype=np.float128,
+                dtype=np.float,
             )
             / D
         )

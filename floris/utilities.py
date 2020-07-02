@@ -128,6 +128,8 @@ class Vec3:
     def __hash__(self):
         return hash((self.x1, self.x2, self.x3))
 
+    def tolist(self):
+        return (self.x1, self.x2, self.x3)
 
 def cosd(angle):
     """

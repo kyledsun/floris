@@ -64,7 +64,7 @@ class FlorisInterface(LoggerBase):
         self.floris = Floris(input_file=input_file, input_dict=input_dict)
 
     def calculate_wake(
-        self, yaw_angles=None, no_wake=False, points=None, track_n_upstream_wakes=False
+        self, yaw_angles=None, no_wake=False, points=None, track_n_upstream_wakes=False, Ind_Opts = None
     ):
         """
         Wrapper to the :py:meth:`~.Farm.set_yaw_angles` and
@@ -82,6 +82,10 @@ class FlorisInterface(LoggerBase):
             track_n_upstream_wakes (bool, optional): When *True*, will keep
                 track of the number of upstream wakes a turbine is
                 experiencing. Defaults to *False*.
+            Ind_Opts (dict, optional): Dictionary of vortex cylinder options
+                to be applied to the induction zone of the velocity field as
+                a result of the blockage effect.
+
         """
         if yaw_angles is not None:
             self.floris.farm.set_yaw_angles(yaw_angles)
@@ -90,6 +94,7 @@ class FlorisInterface(LoggerBase):
             no_wake=no_wake,
             points=points,
             track_n_upstream_wakes=track_n_upstream_wakes,
+            Ind_Opts=Ind_Opts
         )
 
     def reinitialize_flow_field(
@@ -252,6 +257,7 @@ class FlorisInterface(LoggerBase):
         x3_value=100,
         x1_bounds=None,
         x2_bounds=None,
+        Ind_Opts=None
     ):
         """
         Calculates velocity values through the
@@ -271,6 +277,9 @@ class FlorisInterface(LoggerBase):
                 Defaults to None.
             x2_bounds (tuple, optional): Limits of output array (in m).
                 Defaults to None.
+            Ind_Opts (dictionary, optional): Dictionary of vortex 
+                cylinder options to be applied to the induction zone 
+                of the velocity field as a result of the blockage effect.
 
         Returns:
             :py:class:`pandas.DataFrame`: containing values of x1, x2, u, v, w
@@ -333,7 +342,7 @@ class FlorisInterface(LoggerBase):
             points = np.row_stack((x3_array, x1_array, x2_array))
 
         # Recalculate wake with these points
-        flow_field.calculate_wake(points=points)
+        flow_field.calculate_wake(points=points,Ind_Opts=Ind_Opts)
 
         # Get results vectors
         x_flat = flow_field.x.flatten()
@@ -463,6 +472,7 @@ class FlorisInterface(LoggerBase):
         y_resolution=200,
         x_bounds=None,
         y_bounds=None,
+        Ind_Opts=None
     ):
         """
         Shortcut method to instantiate a :py:class:`~.tools.cut_plane.CutPlane`
@@ -479,6 +489,9 @@ class FlorisInterface(LoggerBase):
                 Defaults to None.
             y_bounds (tuple, optional): Limits of output array (in m).
                 Defaults to None.
+            Ind_Opts (dictionary, optional): Dictionary of vortex 
+                cylinder options to be applied to the induction zone 
+                of the velocity field as a result of the blockage effect.
 
         Returns:
             :py:class:`~.tools.cut_plane.CutPlane`: containing values
@@ -499,6 +512,7 @@ class FlorisInterface(LoggerBase):
             x3_value=height,
             x1_bounds=x_bounds,
             x2_bounds=y_bounds,
+            Ind_Opts=Ind_Opts
         )
 
         # Compute and return the cutplane
@@ -578,7 +592,7 @@ class FlorisInterface(LoggerBase):
         # Compute and return the cutplane
         return CutPlane(df)
 
-    def get_flow_data(self, resolution=None, grid_spacing=10, velocity_deficit=False):
+    def get_flow_data(self, resolution=None, grid_spacing=10, velocity_deficit=False, Ind_Opts=None, bounds_to_set=None):
         """
         Generate :py:class:`~.tools.flow_data.FlowData` object corresponding to
         active FLORIS instance.
@@ -597,6 +611,9 @@ class FlorisInterface(LoggerBase):
             velocity_deficit (bool, optional): When *True*, normalizes velocity
                 with respect to initial flow field velocity to show relative
                 velocity deficit (%). Defaults to *False*.
+            Ind_Opts (dict, optional): Dictionary of vortex cylinder options
+                to be applied to the induction zone of the velocity field as
+                a result of the blockage effect.
 
         Returns:
             :py:class:`~.tools.flow_data.FlowData`: FlowData object
@@ -623,6 +640,10 @@ class FlorisInterface(LoggerBase):
                 resolution = (
                     self.floris.farm.flow_field.wake.velocity_model.model_grid_resolution
                 )
+        else:
+            pass
+            #self.logger.info("Using user defined resolution")
+            #print('Using user defined resolution', resolution)
 
         # Get a copy for the flow field so don't change underlying grid points
         flow_field = copy.deepcopy(self.floris.farm.flow_field)
@@ -637,10 +658,10 @@ class FlorisInterface(LoggerBase):
                 + "FlorisInterface.get_flow_field is ignored."
             )
             resolution = flow_field.wake.velocity_model.model_grid_resolution
-        flow_field.reinitialize_flow_field(with_resolution=resolution)
+        flow_field.reinitialize_flow_field(with_resolution=resolution, bounds_to_set=bounds_to_set)
         self.logger.info(resolution)
         # print(resolution)
-        flow_field.calculate_wake()
+        flow_field.calculate_wake(Ind_Opts=Ind_Opts)
 
         order = "f"
         x = flow_field.x.flatten(order=order)
