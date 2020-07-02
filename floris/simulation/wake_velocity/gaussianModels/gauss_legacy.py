@@ -179,7 +179,11 @@ class LegacyGauss(GaussianModel):
             - 2 * b * ((y_locations - turbine_coord.x2) - delta) * ((z_locations - HH))
             + c * ((z_locations - HH)) ** 2
         )
-        C = 1 - np.sqrt(1 - (Ct * cosd(yaw) / (8.0 * sigma_y * sigma_z / D ** 2)))
+
+        Ceff = (Ct * cosd(yaw) / (8.0 * sigma_y * sigma_z / D ** 2))
+        Ceff[Ceff > 1] = 0.99 # Prevents broken equation (neg number in sqrt)
+        C = 1 - np.sqrt(1 - Ceff)
+        #C = 1 - np.sqrt(1 - (Ct * cosd(yaw) / (8.0 * sigma_y * sigma_z / D ** 2)))
 
         velDef = GaussianModel.gaussian_function(U_local, C, r, 1, np.sqrt(0.5))
         velDef[x_locations < xR] = 0
