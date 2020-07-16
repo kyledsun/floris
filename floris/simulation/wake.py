@@ -101,6 +101,11 @@ class Wake:
         self._combination_models = {"fls": FLS, "sosfs": SOSFS, "max": MAX}
         self.combination_model = properties["combination_model"]
 
+        # self._induction_models = {"vcff": VCFF, "vc": VC, "ss": SS, "vd": VD}
+        # self.induction_model = properties["induction_model"]
+        if "induction_parameters" not in self.parameters.keys():
+            self.parameters['induction_parameters'] = {'induction': False}
+
     # Getters & Setters
     @property
     def velocity_model(self):
@@ -238,6 +243,40 @@ class Wake:
             raise ValueError(
                 "Invalid value given for WakeCombination: {}".format(value)
             )
+
+    # @property
+    # def induction_model(self):
+    #     """
+    #     Induction model.
+
+    #     **Note**: This is a virtual property used to "get" or "set" a value.
+
+    #     Args:
+    #         value (str, :py:class:`~.base_wake_combination.WakeCombination`):
+    #             A string for the model to set or the model instance itself.
+
+    #     Returns:
+    #         :py:class:`~.base_wake_combination.WakeCombination`:
+    #             Model currently set.
+
+    #     Raises:
+    #         ValueError: Invalid value.
+    #     """
+    #     return self._induction_model
+
+    # @induction_model.setter
+    # def induction_model(self, value):
+    #     if type(value) is str:
+    #         if "induction_parameters" not in self.parameters.keys():
+    #             self._induction_model = self.induction_model[value]({'no_induction': True})
+    #         else:
+    #             self._induction_model = self._induction_models[value](self.parameters["induction_parameters"])
+    #     elif isinstance(value, WakeCombination):
+    #         self._induction_model = value
+    #     else:
+    #         raise ValueError(
+    #             "Invalid value given for Induction Model: {}".format(value)
+    #         )
 
     @property
     def deflection_function(self):

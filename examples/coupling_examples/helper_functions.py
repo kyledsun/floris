@@ -10,11 +10,18 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import floris.tools as wfct
 from floris.utilities import Vec3
 
-def get_HH_plane_vel(input_file, input_dict, Ind_Opts, resolution=Vec3(232, 114, 3),bounds_to_set=None):
+def get_HH_plane_vel(input_file, input_dict, Induction=False, resolution=Vec3(232, 114, 3),bounds_to_set=None):
     fi = wfct.floris_interface.FlorisInterface(input_file, input_dict)
+    # print("Ind Opts:", Ind_Opts)
+    Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
+    if Induction:
+        print(">>> Blockage effect is modeled")
+        Ind_Opts['induction'] = True
+    else:
+        Ind_Opts['induction'] = False
     # Calculate wake
-    #fi.calculate_wake(Ind_Opts=Ind_Opts)
-
+    #fi.calculate_wake(yaw_angles=[15,0.0],Ind_Opts=Ind_Opts)
+    #fi.calculate_wake(yaw_angles=[15,5,0.0,15,5,0],Ind_Opts=Ind_Opts)
     #fd=fi.get_flow_data(resolution = resolution, Ind_Opts=Ind_Opts)
 
     # # Initialize the horizontal cut

@@ -62,6 +62,8 @@ class FlorisInterface(LoggerBase):
             raise ValueError(err_msg)
         self.input_file = input_file
         self.floris = Floris(input_file=input_file, input_dict=input_dict)
+        # self.IndOpts = self.floris.farm.flow_field.Ind_Opts
+        # print('------------------------------',IndOpts)
 
     def calculate_wake(
         self, yaw_angles=None, no_wake=False, points=None, track_n_upstream_wakes=False, Ind_Opts = None

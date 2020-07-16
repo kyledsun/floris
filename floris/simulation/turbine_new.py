@@ -23,7 +23,11 @@ from scipy.interpolate import interp1d
 from ..utilities import cosd, sind, tand
 from ..logging_manager import LoggerBase
 
-from  floris.simulation.wake_vortex.WindTurbineTemp import WindTurbine
+from floris.simulation.wake_vortex.VortexCylinder import vc_tang_u, vc_longi_u, vc_root_u, vcs_tang_u, vcs_longi_u, vc_tang_u_doublet
+from floris.simulation.wake_vortex.VortexDoublet  import doublet_line_u
+from floris.simulation.wake_vortex.SelfSimilar    import ss_u
+from floris.simulation.wake_vortex.VortexCylinderSkewed import svc_tang_u, svc_longi_u, svc_root_u, svcs_tang_u, svcs_longi_u
+from floris.simulation.wake_vortex.Solver import Ct_const_cutoff, WakeVorticityFromCt, WakeVorticityFromGamma
 
 class Turbine(LoggerBase):
     """
@@ -72,7 +76,21 @@ class Turbine(LoggerBase):
                 -   **TSR** (*float*): The tip-speed ratio of the turbine. This
                     parameter is used in the "curl" wake model.
 
-    Returns:
+                    Need to Update _________________________________________
+                    - R: rotor radius
+                    - r_hub: position of the turbine hub in global coordinate system
+                    - e_shaft_yaw0: unit vector along the shaft (untitled for now), going downwind, when the turbine has zero yaw
+                    - e_vert: unit vertical vector, about which positive yawing is done
+                    - U0: Free stream velocity in global coordinates (can be changerd with `update_wind`)
+                    - Ct: Thrust coefficient (can be changed with `update_loading`)
+                    - Ground: Include ground effect in calculations
+                    - Model: one of ['VC','VCFF', 'VD', 'SS']
+                            'VCFF': Vortex cylinder with far-field approximation (fastest)
+                            'VC': Vortex cylinder
+                            'SS': Self similar model of Troldborg et al.  (not good close to rotor)
+                            'VD': Self similar model of Troldborg et al.  (not good close to rotor)
+
+Returns:
         Turbine: An instantiated Turbine object.
     """
 
@@ -91,6 +109,37 @@ class Turbine(LoggerBase):
         self.tilt_angle = properties["tilt_angle"]
         self.tsr = properties["TSR"]
 
+        # Vortex turbine (for induction computation) parameters
+        self.R = self.rotor_diameter/2
+        self.r_hub = [0,0,self.hub_height]
+        self.e_shaft_yaw0 = [1,0,0]
+        self.e_vert = [0,0,1]
+
+        """ 
+            Specifies vectors to define coordinate notations for transformation
+            matrices between vortex turbine cylindrical corrdinates and global coordinates
+        """
+        # Specify global coordinate system [TODO ??? need to check]
+        self.e_shaft_g0 = np.asarray([1,0,0]).reshape(3,1)
+        self.e_vert_g = np.asarray([0,0,1]).reshape(3,1)
+        self.e_horz_g = np.asarray([1.,0.,0.]).reshape(3,1)
+        # Transformation matrix from cylindrical to wind turbine coordinate system
+        self.T_c2wt = np.asarray([[0,0,1,1,0,0,0,1,0]]).reshape(3,3)
+        
+        self.set_yaw_angle(self.yaw_angle)
+        self.update_position(self.r_hub)
+        self.U0_g = np.asarray([0,0,10]).ravel().reshape(3,1)
+        #self.update_wind([0,0,10])
+        self.name=''
+        self.r=None
+        self.gamma_t=None
+        self.gamma_t=None
+        self.Gamma_r=None
+        self.Lambda=np.inf
+        self.Ground=False# Ground effect will be included in calculation of induced velocity
+        self.chi=None
+        self.Model='VC'
+
         # initialize to an invalid value until calculated
         self.air_density = -1
         self.use_turbulence_correction = False
@@ -101,12 +150,13 @@ class Turbine(LoggerBase):
         else:
             self.use_points_on_perimeter = False
 
+        
         self._initialize_turbine()
 
-        # Initialize a vortex turbine (for induction computation)
-        self.VC_WT = WindTurbine(R=self.rotor_diameter/2,
-                r_hub = [0,0,self.hub_height], #TODOTODO position?
-                e_shaft_yaw0=[1,0,0],e_vert=[0,0,1])
+        # # Initialize a vortex turbine (for induction computation)
+        # self.VC_WT = WindTurbine(R=self.rotor_diameter/2,
+        #         r_hub = [0,0,self.hub_height], #TODOTODO position?
+        #         e_shaft_yaw0=[1,0,0],e_vert=[0,0,1])
 
     # Private methods
 
@@ -314,7 +364,7 @@ class Turbine(LoggerBase):
         This method sets the velocities at the turbine's rotor swept
         area grid points to zero.
         """
-        self.velocities = [0.0] * self.grid_point_count
+        self.velocities = np.array([0.0] * self.grid_point_count)
 
     def set_yaw_angle(self, yaw_angle):
         """
@@ -331,10 +381,301 @@ class Turbine(LoggerBase):
         self._yaw_angle = yaw_angle
 
         # Vortex wind turbine
-        print('>>> turbine.py : set yaw VC_WT')
-        self.VC_WT.WT.update_yaw_pos(yaw_angle*np.pi/180)
+        print('>>> turbine.py : set yaw VC_WT') 
+        self.yaw_pos = yaw_angle * np.pi/180 # Convert from degrees to radians
+
+        # Transformation matrix for rotating vector around yaw angle
+        c,s=np.cos(self.yaw_pos),np.sin(self.yaw_pos)
+        self.T_wt2g  = np.asarray([c,-s,0,s,c,0,0,0,1]).reshape(3,3)
+        # Rotating the shaft vector so that its coordinate follow the new yaw position
+        self.e_shaft_g=np.dot(self.T_wt2g , self.e_shaft_g0)
+
+    def update_position(self,r_hub):
+        self.r_hub=np.asarray(r_hub).ravel().reshape(3,1)
+
+    def compute_induction(self, Ind_Opts, rotated_x, rotated_y, rotated_z):
+        """ 
+        Computes induction from the turbine as a result of the blockage effect. Applied to velocity 
+        field to simulate the induction zone of a turbine.
+
+        INPUTS:
+            Ind_Opts (dict): Dictionary of inputs to model the resulting 
+                turbine induction zone as a result of the blockage effect.
+            rotated_x (np.array): The x-coordinates of the flow field grid
+                rotated so the new x axis is aligned with the wind direction.
+            rotated_y (np.array): The y-coordinates of the flow field grid
+                rotated so the new x axis is aligned with the wind direction.
+            rotated_z (np.array): The z-coordinates of the flow field grid
+                rotated so the new x axis is aligned with the wind direction.
+        """
+        if Ind_Opts['induction']:
+            # update vortex cylinder velocity and loading
+            r_bar_cut = 0.01
+            CT0       = self.Ct
+            self.R = self.rotor_diameter/2*Ind_Opts['Rfact']
+            nCyl      = 1 # For now
+            Lambda    = 30 # if >20 then no swirl
+            vr_bar    = np.linspace(0,1.0,100)
+            Ct_AD     = Ct_const_cutoff(CT0,r_bar_cut,vr_bar) # TODO change me to distributed
+            gamma_t_Ct = None
+            self.update_loading(r=vr_bar*self.R, VC_Ct=Ct_AD, Lambda=Lambda, nCyl=nCyl, gamma_t_Ct=gamma_t_Ct)
+            self.gamma_t= self.gamma_t*Ind_Opts['GammaFact']
+            root  = False
+            longi = False
+            tang  = True
+            # print('.',end='')
+            ux,uy,uz = self.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=True, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
+
+        return ux,uy,uz
+
+    def update_loading(self,r=None,VC_Ct=None,Gamma=None,Lambda=None,nCyl=1,gamma_t_Ct=None):
+        """
+        VC_Ct differs from Ct in that for a vortex cylinder VC_Ct is constant along the blade and
+        zero at the root and the tip
+        """
+        """ 
+        Computes relevant parameters when the turbine loading is updated, mainly, gamma_t, 
+        the intensity of the tangential vorticity sheet.
+        The ditributon will be determined based on the inputs, with one these three approaches:
+           1. VC_Ct(r) distribution
+           2. Gamma(r) distribution
+           3. gamma_t(VC_Ct(r)) function
+
+        INPUTS:
+          r: radial coordinates at which VC_Ct or Gamma are provided
+          VC_Ct: local thrust coefficient (VC_Ct(r), array), or total thrust coefficient (CT, scalar)
+          Gamma:  bound circulation (Gamma(r), array), or total rotor circulation (Gamma_tot, scalar)
+          Lambda: tip speed ratio (assumed infinite if None)
+          nCyl : number of cylindrical model used in the spanwise direction (default is 1)
+                 The circulation (gamma_t) will be determined for each of the radial cylinder
+          gamma_t_Ct: function that provides gamma_t as function of VC_Ct (or gamma_t as function of CT)
+        """
+        # Update vortex cylinder average velocity at turbine
+        self.U0_g = np.asarray([self.average_velocity,0,0]).ravel().reshape(3,1)
+
+        U0=np.linalg.norm(self.U0_g)
+        # print('Turbineprint('Turbine Avg U:',self.average_velocity)
+
+        # --- Reinterpolating loading to number of cylinders if needed
+        if nCyl is not None:
+            if nCyl==1:
+                vr0= np.array([0.995*self.R])
+                if VC_Ct is not None:
+                    VC_Ct =np.array([np.mean(VC_Ct)])
+                if Gamma is not None:
+                    Gamma =np.array([np.mean(Gamma)])
+            else:
+                vr0= np.linspace(0.005,0.995,nCyl)*self.R
+                if VC_Ct is not None:
+                    VC_Ct = np.interp(vr0,r,VC_Ct)
+                else:
+                    Gamma = np.interp(vr0,r,Gamma)
+            r=vr0
+
+        # Updating Lambda
+        if Lambda is None:
+            Lambda=self.Lambda
+        if Lambda is None:
+            raise Exception('Provide `Lambda` for update_loading. (Note: `Lambda=np.Inf` supported) ')
+        Omega = Lambda*U0/self.R
+        #print('U0',U0)
+        #print('VC_Ct',VC_Ct)
+
+        # Computing and storing gamma distribution and loading
+        if gamma_t_Ct is not None:
+            if VC_Ct is None:
+                raise Exception('Provide `Ct` along `gamma_t_Ct`')
+            self.gamma_t = gamma_t_Ct(VC_Ct)
+            self.gamma_l=None # TODO
+            self.Gamma_r=None # TODO
+        elif VC_Ct is not None:
+            self.gamma_t,self.gamma_l,self.Gamma_r,misc=WakeVorticityFromCt(r,VC_Ct,self.R,U0,Omega)
+        elif Gamma is not None:
+            self.gamma_t,self.gamma_l,self.Gamma_r,misc=WakeVorticityFromGamma(r,Gamma,self.R,U0,Omega)
+        else:
+            raise Exception('Unknown loading spec')
+        #self.gamma_t=self.gamma_t*1.06
+        #print('gamma_t    ',self.gamma_t)
+        #print('gamma_l    ',self.gamma_l)
+        #print('Gamma_r    ',self.Gamma_r)
+        #print('Gamma_/2piR',-self.Gamma_r/(2*np.pi*self.R))
+        #print(misc)
+        self.Lambda=Lambda
+        self.r=r
+        self.VC_Ct=VC_Ct
+
+    def compute_u(self, Xg, Yg, Zg, only_ind=False, longi=False, tang=True, root=False, no_wake=False, ground=None, Model=None, R_far_field=6): 
+        """ 
+        INPUTS:
+            Xg, Yg, Zg: Control points in global coordinates where the flow is to be computed. 
+            only_ind: if true, only induction is returned (without the free stream)
+
+            longi, tang, root: booleans specifying which component of vorticity is considered.
+                               Default is `tang` only
+            no_wake: boolean, if true: the induced velocity in the wake is set to 0. 
+                     Typically set to true when combining with wake models.
+
+            Model : string in ['VC','VCFF','SS','VD']
+                   'VCFF': Vortex cylinder with far-field approximation (fastest)
+                   'VC': Vortex cylinder
+                   'SS': Self similar model of Troldborg et al.  (not good close to rotor)
+                   'VD': Self similar model of Troldborg et al.  (not good close to rotor)
+        """
+        # --- Optional argument overriding self
+        if ground is None:
+            ground=self.Ground
+        if Model is None:
+            Model=self.Model
+
+        # Control points in "Cylinder coordinate system" (rotation only)
+        T_c2g=np.dot(self.T_wt2g,self.T_c2wt)
+        Xc,Yc,Zc = transform_T(T_c2g, Xg,Yg,Zg)
+        # Detecting whether our vertical convention match, and define chi
+        e_vert_c = np.dot(T_c2g.T , self.e_vert_g)
+        if self.chi is None:
+            # TODO TODO chi needs induction effect!
+            self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos)
+        if self.gamma_t is None:
+            raise Exception('Please set loading with `update_loading` before calling `compute_u`')
+
+        uxc = np.zeros(Xg.shape)
+        uyc = np.zeros(Xg.shape)
+        uzc = np.zeros(Xg.shape)
+        m=np.tan(self.chi)
+        # Cylinder position in "Cylinder coordinate system) (rotation only)
+        Xcyl, Ycyl, Zcyl = transform_T(T_c2g,np.array([self.r_hub[0]]), np.array([self.r_hub[1]]),  np.array([self.r_hub[2]]))
+        # Translate control points such that origin is at rotor center. NOTE: not all routines use this
+        Xc0,Yc0,Zc0=Xc-Xcyl[0],Yc-Ycyl[0],Zc-Zcyl[0]
+        if ground:
+            # Mirror control points are two time the hub height above the cylinder
+            Yc0mirror=Yc0+2*Ycyl[0]
+            Ylist=[Yc0,Yc0mirror]
+            #print('>>> Ground effect',Ycyl[0])
+        else:
+            Ylist=[Yc0]
+
+        # --- Root vortex influence
+        if root and  (self.Gamma_r is not None) and self.Gamma_r!=0:
+            for Y in Ylist:
+                if np.abs(self.chi)>1e-7:
+                    uxc0,uyc0,uzc0 = svc_root_u(Xc0,Y,Zc0,Gamma_r=self.Gamma_r,m=m,polar_out=False)
+                else:
+                    uxc0,uyc0,uzc0 =  vc_root_u(Xc0,Y,Zc0,Gamma_r=self.Gamma_r,polar_out=False)
+                uxc += uxc0
+                uyc += uyc0
+                uzc += uzc0
+
+
+        if len(self.gamma_t)==1:
+            # --- Tangential and longi - ONE Cylinder only
+            for iY,Y in enumerate(Ylist):
+                if tang and (self.gamma_t!=0):
+                    if np.abs(self.chi)>1e-7:
+                        if Model =='VC':
+                            uxc0,uyc0,uzc0 = svc_tang_u(Xc0,Y,Zc0,gamma_t=self.gamma_t,R=self.R,m=m,polar_out=False)
+                        else:
+                            raise NotImplementedError('Model '+Model + ', with yaw.')
+                    else:
+                        if Model =='VC':
+                                uxc0,uyc0,uzc0 = vc_tang_u        (Xc0,Y,Zc0, gamma_t=self.gamma_t, R=self.R, polar_out=False)
+                        elif Model =='VCFF':
+                            uxc0,uyc0,uzc0 = vc_tang_u_doublet(Xc0,Y,Zc0, gamma_t=self.gamma_t, R=self.R, polar_out=False,r_bar_Cut=R_far_field)
+                        elif Model =='VD':
+                            uxc0,uyc0,uzc0 = doublet_line_u(Xc0, Y, Zc0, dmz_dz = self.gamma_t * self.R**2 * np.pi)
+                        elif Model =='SS':
+                            uzc0 = ss_u          (Xc0, Y, Zc0, gamma_t=self.gamma_t, R=self.R)
+                            uxc0=uzc0*0
+                            uyc0=uzc0*0
+                        else:
+                            raise NotImplementedError('Model'+Model)
+                    uxc += uxc0
+                    uyc += uyc0
+                    uzc += uzc0
+                if longi and (self.gamma_l is not None) and self.gamma_l!=0 :
+                    if np.abs(self.chi)>1e-7:
+                        if Model =='VC':
+                            uxc0,uyc0,uzc0 = svc_longi_u(Xc0,Y,Zc0,gamma_l=self.gamma_l,R=self.R,m=m,polar_out=False)
+                        else:
+                            raise NotImplementedError('Model '+Model + ', longi component.')
+                    else:
+                        if Model =='VC':
+                            uxc0,uyc0,uzc0 = vc_longi_u (Xc0,Y,Zc0,gamma_l=self.gamma_l,R=self.R    ,polar_out=False)
+                        else:
+                            raise NotImplementedError('Model'+Model + ', longi component.')
+                    uxc += uxc0
+                    uyc += uyc0
+                    uzc += uzc0
+        else:
+            # --- Tangential and longi - MULTI Cylinders
+            if Model =='VC':
+                nr   = len(self.r)
+                nWT = 1
+                # Control points are directly translated by routine
+                gamma_t = self.gamma_t.reshape((nWT,nr))
+#                 print('r      ',self.r)
+#                 print('gamma_t',gamma_t)
+                if self.gamma_l is not None:
+                    gamma_l = self.gamma_l.reshape((nWT,nr))
+                vR      = self.r.reshape((nWT,nr))
+                vm       = m* np.ones((nWT,nr))
+                if tang:
+                    if np.abs(self.chi)>1e-7:
+                        uxc0,uyc0,uzc0 = svcs_tang_u(Xc,Yc,Zc,gamma_t=gamma_t,R=vR,m=vm,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl,Ground=ground)
+                    else:
+                        uxc0,uyc0,uzc0 = vcs_tang_u (Xc,Yc,Zc,gamma_t=gamma_t,R=vR    ,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl, Ground=ground)
+                    uxc += uxc0
+                    uyc += uyc0
+                    uzc += uzc0
+                if longi and (self.gamma_l is not None):
+                    if np.abs(self.chi)>1e-7:
+                        uxc0,uyc0,uzc0 = svcs_longi_u(Xc,Yc,Zc,gamma_l=gamma_l,R=vR,m=vm,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl, Ground=ground)
+                    else:
+                        uxc0,uyc0,uzc0 = vcs_longi_u (Xc,Yc,Zc,gamma_l=gamma_l,R=vR      ,Xcyl=Xcyl,Ycyl=Ycyl,Zcyl=Zcyl, Ground=ground)
+                    uxc += uxc0
+                    uyc += uyc0
+                    uzc += uzc0
+            else:
+                raise NotImplementedError('Model'+Model, 'with multiple cylinders')
+        if no_wake:
+#             uxc[:]=0
+#             uyc[:]=0
+#             uzc[:]=1
+            # Zero wake induction
+            bDownStream=Zc0>=-0.20*self.R
+#             bDownStream=Zc0>=0
+            Rc = np.sqrt(Xc0**2 + Yc0**2)
+            bRotorTube = Rc<self.R*1.001 # we give a margin since VD and VC have fields very dissimilar at R+/-eps
+            bSelZero = np.logical_and(bRotorTube,bDownStream)
+            uxc[bSelZero]=0
+            uyc[bSelZero]=0
+            uzc[bSelZero]=0
+
+        # Transform back to global
+        uxg = T_c2g[0,0]*uxc+T_c2g[0,1]*uyc+T_c2g[0,2]*uzc
+        uyg = T_c2g[1,0]*uxc+T_c2g[1,1]*uyc+T_c2g[1,2]*uzc
+        uzg = T_c2g[2,0]*uxc+T_c2g[2,1]*uyc+T_c2g[2,2]*uzc
+
+        # Add free stream if requested
+        if not only_ind:
+            uxg += self.U0_g[0]
+            uyg += self.U0_g[1]
+            uzg += self.U0_g[2]
+        return uxg,uyg,uzg
 
     # Getters & Setters
+    @property
+    def yaw_wind(self):
+        """ NOTE: this is wind angle not wind direction, measured with same convention as yaw:
+            - around the axis e_vert
+        """
+        u_horz = self.U0_g - np.dot(self.U0_g.T,self.e_vert_g)*self.e_vert_g
+        e_w    = u_horz/np.linalg.norm(u_horz)
+        sign = np.sign  ( np.dot(np.cross(self.e_horz_g.T, self.U0_g.T),self.e_vert_g) )
+        if sign==0:
+            yaw_wind = np.arccos(np.dot(e_w.T,self.e_horz_g))
+        else:
+            yaw_wind = sign * np.arccos(np.dot(e_w.T,self.e_horz_g))
+        return yaw_wind.ravel()[0]
 
     @property
     def turbulence_parameter(self):
@@ -608,3 +949,12 @@ class Turbine(LoggerBase):
             / cosd(self.yaw_angle)
             * (1 - np.sqrt(1 - self.Ct * cosd(self.yaw_angle)))
         )
+
+# --------------------------------------------------------------------------------}
+# --- Helper functions for geometry 
+# --------------------------------------------------------------------------------{
+def transform_T(T_a2b,Xb,Yb,Zb):
+    Xa=T_a2b[0,0]*Xb+T_a2b[1,0]*Yb+T_a2b[2,0]*Zb
+    Ya=T_a2b[0,1]*Xb+T_a2b[1,1]*Yb+T_a2b[2,1]*Zb
+    Za=T_a2b[0,2]*Xb+T_a2b[1,2]*Yb+T_a2b[2,2]*Zb
+    return Xa,Ya,Za

@@ -47,7 +47,7 @@ def plot_turbines(
         x_1 = x - np.sin(np.deg2rad(yaw)) * R
         y_0 = y - np.cos(np.deg2rad(yaw)) * R
         y_1 = y + np.cos(np.deg2rad(yaw)) * R
-        ax.plot([x_0, x_1], [y_0, y_1], color=color)
+        ax.plot([x_0/D, x_1/D], [y_0/D, y_1/D], color=color)
 
 
 def plot_turbines_with_fi(ax, fi, color=None):

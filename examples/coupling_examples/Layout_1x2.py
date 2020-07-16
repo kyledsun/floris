@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from floris.induction import options_dict
+# from floris.induction import options_dict
 from helper_functions import *
 
 fontsize = 12
@@ -22,15 +22,16 @@ levelsLines=np.sort([1.05,1.0,0.99,0.98,0.95,0.9,0.5])
 ny=30 # 200
 nx=ny*4
 
-input_file="Layout_1x2.json"
+input_file="Layout_1x2_v2.json"
 input_dict=None
 D=126
 resolution=Vec3(nx, ny, 2)
 bounds=[-4*D,14*D,-2*D-10,2*D+10,89,90] # xmin xmax .. zmin zmax
-Ind_Opts=options_dict()
-Ind_Opts['Rfact']=1.0
-Ind_Opts['GammaFact']=1.0
-Ind_Opts['Ground']=True
+# Ind_Opts=options_dict()
+# Ind_Opts['Rfact']=1.0
+# Ind_Opts['GammaFact']=1.0
+# Ind_Opts['Ground']=True
+#Induction = False # Default for inclusion of the induction zone
 
 
 titles=[]
@@ -42,14 +43,17 @@ titles.append('FLORIS (with induction)')
 if bCompute:
     planes=[]
     print('-----------------------------------------------------------------')
-    Ind_Opts['no_induction']=True
-    planes.append(get_HH_plane_vel(input_file, input_dict, Ind_Opts, resolution, bounds_to_set=bounds))
+    # Ind_Opts['induction']=False
+    Induction = False
+    planes.append(get_HH_plane_vel(input_file, input_dict, Induction=Induction, resolution=resolution, bounds_to_set=bounds))
+    #plane_x,plane_y,u_mesh,v_mesh, fi = get_HH_plane_vel(input_file, input_dict, Ind_Opts, resolution, bounds_to_set=bounds)
     savePlane(planes[-1],'_data/Layout12_0_',U0=U0)
 
     print('-----------------------------------------------------------------')
-    Ind_Opts['no_induction']=False
-    Ind_Opts['blend']=False
-    planes.append(get_HH_plane_vel(input_file, input_dict, Ind_Opts, resolution, bounds_to_set=bounds))
+    # Ind_Opts['induction']=True
+    # Ind_Opts['blend']=False
+    Induction = True
+    planes.append(get_HH_plane_vel(input_file, input_dict, Induction=Induction, resolution=resolution, bounds_to_set=bounds))
     savePlane(planes[-1],'_data/Layout12_1_',U0=U0)
 
 planes=[]
@@ -67,13 +71,13 @@ for i,(ax,p,t) in enumerate(zip(axes.flat,planes,titles)):
     im = plotPlane(x/D,y/D,u,v,ax,minSpeed=minSpeed,maxSpeed=maxSpeed,
             nStreamlines=nStreamlines,levelsLines=levelsLines, axial=True, colors='k')
     ax.title.set_text(t)
-
+    #wfct.visualization.plot_turbines_with_fi(ax,fi)
     ax.set_ylabel('r/D [-]')
     ax.title.set_text(t)
     ax.tick_params(direction='in')
 
     if i==1:
-        ax.set_xlabel('z/D [-]')
+        ax.set_xlabel('x/D [-]')
 
 ax.set_xlim([-4,14])
 ax.set_ylim([-2,2])

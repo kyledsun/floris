@@ -19,7 +19,7 @@ import floris.logging_manager as logging_manager
 
 from .farm import Farm
 from .wake import Wake
-from .turbine import Turbine
+from .turbine_new import Turbine
 from .input_reader import InputReader
 
 

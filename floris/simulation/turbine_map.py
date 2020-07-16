@@ -15,7 +15,7 @@
 
 import numpy as np
 
-from .turbine import Turbine
+from .turbine_new import Turbine
 from ..utilities import Vec3, wrap_180
 
 

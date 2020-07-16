@@ -74,6 +74,7 @@ class Farm:
         layout_y = properties["layout_y"]
         wind_x = properties["wind_x"]
         wind_y = properties["wind_y"]
+        self.initwind = properties['wind_speed']
 
         self.wind_map = WindMap(
             wind_speed=properties["wind_speed"],

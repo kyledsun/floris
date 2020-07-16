@@ -249,7 +249,16 @@
             "ai": 0.8,
             "downstream": -0.275
           }
-        }
+        },
+        "induction_parameters": {
+          "induction": true,
+          "blend": false,
+          "Rfact": 1,
+          "GammaFact": 1,
+          "Model": "VCFF",
+          "Ground": true,
+          "nIter": 1,
+          "R_far_field": 8}
     }
   }
 }
