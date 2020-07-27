@@ -16,6 +16,7 @@
 import numpy as np
 import scipy as sp
 from scipy.interpolate import griddata
+import copy
 
 from ..utilities import Vec3, cosd, sind, tand
 
@@ -900,52 +901,97 @@ class FlowField:
             PowerTot+=turbine.power
         print('Avg Power per WT:',PowerTot/nWT/1000)
 
-        if Ind_Opts['induction']:
-            if Ind_Opts['nIter'] < 1:
-                raise Exception('Minimum one iteration is required when using induction')
+        if Ind_Opts['Ct_test']:
+            """
+            Used to test that the iteration calculations are only applied once and are not being cummulatively added.
+            """            
+            # Set number of iterations to one
+            Ind_Opts_temp = copy.deepcopy(Ind_Opts)
+            Ind_Opts_temp['nIter'] = 1
+            # Initialize induction velocities to zero
+            u_ind = np.zeros(np.shape(self.u))
+            v_ind = np.zeros(np.shape(self.u))
+            w_ind = np.zeros(np.shape(self.u))
 
-            for nIt in np.arange(1,Ind_Opts['nIter']+1):
-                print('>>> Compute induction, iteration: ', nIt, end='')
-                with Timer('Induction call, iteration: {:d}'.format(nIt)):
-                    u_ind = np.zeros(np.shape(self.u))
-                    v_ind = np.zeros(np.shape(self.u))
-                    w_ind = np.zeros(np.shape(self.u))
-
-                    for i,(coord, turbine) in enumerate(sorted_map):
-                        # u_ind, v_ind, w_ind = compute_induction()
-                        ux,uy,uz = turbine.compute_induction(Ind_Opts,rotated_x,rotated_y,rotated_z)
-                        u_ind += ux
-                        v_ind += uy
-                        w_ind += uz
-                    u_wake, v_wake, w_wake = np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u))
-                    print('')
-
-                print('>>> Compute wakes,    iteration',nIt,end='')
-                with Timer('Wake call,      iteration: {:d}'.format(nIt)):
-                    u_wake, v_wake, w_wake = compute_wakes(u_wake,v_wake,w_wake,u_ind,v_ind,w_ind)
-                    #print_Ct()
-                PowerTot=0
-                nWT=len(sorted_map)
-                for coord,turbine in sorted_map:
-                    # print('turbine %d:' %i,turbine.power)
-                    PowerTot+=turbine.power
-                print('Avg Power per WT:',PowerTot/nWT/1000)
+            # Loop through turbines and set Ct values to values calculated from initial calculate induction
+            # Recalculate induction field based on new Ct values.
+            for i,(coord, turbine) in enumerate(sorted_map):
+                print('------------Turbine %d---------------' %i)
+                ux,uy,uz = turbine.compute_induction(Ind_Opts_temp,rotated_x,rotated_y,rotated_z,CT0=self.Ct_list[i])
+                u_ind += ux
+                v_ind += uy
+                w_ind += uz
+                u_wake, v_wake, w_wake = np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u))
+            
+            print('>>> Compute wakes',end='')
+            with Timer('Wake call'):
+                u_wake, v_wake, w_wake = compute_wakes(u_wake,v_wake,w_wake,u_ind,v_ind,w_ind)
+                #print_Ct()
+            PowerTot=0
+            nWT=len(sorted_map)
+            for coord,turbine in sorted_map:
+                # print('turbine %d:' %i,turbine.power)
+                PowerTot+=turbine.power
+            print('Avg Power per WT:',PowerTot/nWT/1000)
 
             u_wake = (u_wake - u_ind)
             v_wake = (v_wake + v_ind)
             w_wake = (w_wake + w_ind)
 
+        else:
+            if Ind_Opts['induction']:
+                if Ind_Opts['nIter'] < 1:
+                    raise Exception('Minimum one iteration is required when using induction')
+                # print("---------------Ind_Opts: ",Ind_Opts)
+                for nIt in np.arange(1,Ind_Opts['nIter']+1):
+                    print('>>> Compute induction, iteration: ', nIt, end='')
+                    with Timer('Induction call, iteration: {:d}'.format(nIt)):
+                        u_ind = np.zeros(np.shape(self.u))
+                        v_ind = np.zeros(np.shape(self.u))
+                        w_ind = np.zeros(np.shape(self.u))
+
+                        for i,(coord, turbine) in enumerate(sorted_map):
+                            # u_ind, v_ind, w_ind = compute_induction()
+                            ux,uy,uz = turbine.compute_induction(Ind_Opts,rotated_x,rotated_y,rotated_z)
+                            u_ind += ux
+                            v_ind += uy
+                            w_ind += uz
+                        u_wake, v_wake, w_wake = np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u))
+                        print('')
+
+                    print('>>> Compute wakes,    iteration',nIt,end='')
+                    with Timer('Wake call,      iteration: {:d}'.format(nIt)):
+                        u_wake, v_wake, w_wake = compute_wakes(u_wake,v_wake,w_wake,u_ind,v_ind,w_ind)
+                        #print_Ct()
+                    PowerTot=0
+                    nWT=len(sorted_map)
+                    for coord,turbine in sorted_map:
+                        # print('turbine %d:' %i,turbine.power)
+                        PowerTot+=turbine.power
+                    print('Avg Power per WT:',PowerTot/nWT/1000)
+
+                u_wake = (u_wake - u_ind)
+                v_wake = (v_wake + v_ind)
+                w_wake = (w_wake + w_ind)
+
         # apply the velocity deficit field to the freestream
         if not no_wake:
             self.u = self.u_initial - u_wake
-            self.v = self.v_initial + v_wake
-            self.w = self.w_initial + w_wake
+            # self.v = self.v_initial + v_wake # Comment Out
+            # self.w = self.w_initial + w_wake
 
         # rotate the grid if it is curl
         if self.wake.velocity_model.model_string == "curl":
             self.x, self.y, self.z = self._rotated_grid(
                 -1 * self.wind_map.grid_wind_direction, center_of_rotation
             )
+
+    def set_ct(self, Ct_list):
+        """
+        Creates flowfield variable Ct_list that can be set from example file to calculate induction
+        based on Ct values. Used in checking that induction is only applied once.
+        """
+        self.Ct_list = Ct_list
 
     # Getters & Setters
 

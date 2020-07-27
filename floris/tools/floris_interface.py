@@ -62,7 +62,7 @@ class FlorisInterface(LoggerBase):
             raise ValueError(err_msg)
         self.input_file = input_file
         self.floris = Floris(input_file=input_file, input_dict=input_dict)
-        # self.IndOpts = self.floris.farm.flow_field.Ind_Opts
+        self.IndOpts = self.floris.farm.flow_field.Ind_Opts
         # print('------------------------------',IndOpts)
 
     def calculate_wake(
@@ -91,6 +91,10 @@ class FlorisInterface(LoggerBase):
         """
         if yaw_angles is not None:
             self.floris.farm.set_yaw_angles(yaw_angles)
+
+        if Ind_Opts is None:
+            Ind_Opts = self.IndOpts
+        # print('Calculate Wake IndOpts: ',Ind_Opts)
 
         self.floris.farm.flow_field.calculate_wake(
             no_wake=no_wake,
@@ -505,6 +509,10 @@ class FlorisInterface(LoggerBase):
             self.logger.info(
                 "Default to hub height = %.1f for horizontal plane." % height
             )
+        
+        if Ind_Opts is None:
+            Ind_Opts = self.IndOpts
+        # print('Get_hor_plane IndOpts: ',Ind_Opts)
 
         # Get the points of data in a dataframe
         df = self.get_plane_of_points(

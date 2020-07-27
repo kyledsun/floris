@@ -5,62 +5,44 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import matplotlib.colors as mcolors
+import matplotlib.ticker as ticker
+# from matplotlib.ticker import ScalarFormatter
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 # --- Local
 from floris.tools.optimization.scipy.yaw import YawOptimization
 import floris.tools as wfct
 from floris.utilities import Vec3
 
-fontsize = 12
-plt.rc('font', family='serif')
-plt.rc('font', size=12)
+"""
+Returns the power outputs of floris as a function of the number of calculate_induction iterations used.
+Tests the convergence of the results for different seperation distances between turbines for a 
+specified wind farm.
+"""
 
 # --- Plot options
-nStreamlines=0
-U0 = 8
-minSpeed=0.5
-maxSpeed=1.03
-levelsLines=np.sort([1.05,1.0,0.99,0.98,0.95,0.9,0.5])
-horPlot = False
+Induction = True # Include induction
+horPlot = True # Plots horizontal cuts of wind farms for each wind farm layout
+IterPlots = True # Plots powers as a function of iteration plots
+ReadOuts = True # Prints dataframes of turbine powers as a function of iterations used
 
 # --- Resolution Parameters
-ny=30 # 200
+ny=100
 nx=ny*4
+
+sep = [3,5,7] # List of streamwise separations between turbines (*D)
+titles = ['3D Seperation','5D Separation','7D Separation']
+
+# Create list of iterations to be tested
+nIter = np.arange(1,11)
+
+sepy = 3 # spanwise spearation between turbines (*D)
+# Creates a turbine field with n rows and m columns
+n = 5
+m = 1
 
 input_file="OptLayout_2x3.json"
 input_dict=None
-# D=126
 resolution=Vec3(nx, ny, 2)
-# bounds=[-4*D,16*D,-2*D-10,5*D+10,89,90] # xmin xmax .. zmin zmax
-Induction = True
-
-# Helper function to plot wind farm velocity fields
-def plotPlane(x,y,u,v,ax,minSpeed=None,maxSpeed=None, cmap='coolwarm', colors='w', linewidths=0.8, alpha=0.3,nStreamlines=0,levelsContour=None,levelsLines=None,axial=False):
-    if axial:
-        Speed=u
-    else:
-        Speed=np.sqrt(u**2+v**2)
-    if minSpeed is None:
-        minSpeed = Speed.min()
-        maxSpeed = Speed.max()
-
-    if not ax:
-        fig, ax = plt.subplots()
-    Z = np.ma.masked_where(np.isnan(Speed), Speed)
-
-    # Plot the cut-through
-    im = ax.pcolormesh(x, y, Z, cmap=cmap, vmin=minSpeed, vmax=maxSpeed)
-    if levelsLines is not None:
-        rcParams['contour.negative_linestyle'] = 'solid'
-        cs=ax.contour(x, y, Z, levels=levelsLines, colors=colors, linewidths=linewidths, alpha=alpha)
-
-    if nStreamlines>0:
-        yseed=np.linspace(min(y)*0.9,max(y)*0.9,nStreamlines)
-        start=np.array([yseed*0,yseed])
-        sp=ax.streamplot(x,y,u,v,color='k',start_points=start.T,linewidth=0.7,density=30,arrowstyle='-')
-    ax.set_aspect('equal')
-
-    return im
 
 # Initialize the floris interface
 fi = wfct.floris_interface.FlorisInterface(input_file, input_dict)
@@ -76,32 +58,35 @@ else:
 
 # Turbine parameters
 D = fi.floris.farm.turbines[0].rotor_diameter
-U0 = fi.floris.farm.initwind[0]
+# layout_y = [0,0,0,0,0,3*D,3*D,3*D,3*D,3*D]
+layout_y = []
+for i in range(m):
+    for j in range(n):
+        layout_y.append(i*sepy*D)
 
-layout_y = [0,0,0,0,0]
+# Initalize list of dataframes to store turbine parameters for each layout
+power_df = []
+velocity_df = []
+ct_df = []
 
-# Array of diameter separations between turbines
-sep = [3,5,7]
-titles = ['3D Seperation','5D Separation','7D Separation']
+for s in range(len(sep)):
+    # Creates list of x coordinate locations for turbines 
+    layout_x = []
+    for i in range(m):
+        for j in range(n):
+            layout_x.append(j*sep[s]*D)
 
-# Number of iterations used
-nIter = np.arange(1,6)
+    # Reinitialize flow flow field with specified layout
+    fi.reinitialize_flow_field(layout_array=[layout_x, layout_y])
 
-print('Number of iterations:', Ind_Opts['nIter'])
+    # Initialize blank dataframes with iterations as index and turbines as columns
+    sepdf = pd.DataFrame(index=nIter,columns = ['turbine '+str(i) for i in range(len(layout_y))])
+    veldf = pd.DataFrame(index=nIter,columns = ['turbine '+str(i) for i in range(len(layout_y))])
+    ctdf = pd.DataFrame(index=nIter,columns = ['turbine '+str(i) for i in range(len(layout_y))])
 
-sep3D = pd.DataFrame(index=nIter,columns = ['turbine '+str(i) for i in range(len(layout_y))])
-sep5D = pd.DataFrame(index=nIter,columns = ['turbine '+str(i) for i in range(len(layout_y))])
-sep7D = pd.DataFrame(index=nIter,columns = ['turbine '+str(i) for i in range(len(layout_y))])
-
-for j in range(len(sep)):
-    layout_x = [0,sep[j]*D,2*sep[j]*D,3*sep[j]*D,4*sep[j]*D]
-    bounds=[-4*D,sep[j]*5.5*D,-2*D-10,2*D+10,89,90] # xmin xmax .. zmin zmax
     for i in range(len(nIter)):
         Ind_Opts['nIter'] = nIter[i]
         # print('Number of iterations:', Ind_Opts['nIter'])
-
-        # Reinitialize flow flow field with specified layout
-        fi.reinitialize_flow_field(layout_array=[layout_x, layout_y])
 
         # Calculate wake and get horizontal plane at turbine height for original farm field
         fi.calculate_wake(Ind_Opts=Ind_Opts)
@@ -110,72 +95,96 @@ for j in range(len(sep)):
         power_initial = fi.get_farm_power()
         turbine_powers = fi.get_turbine_power()
 
-        if j == 0:
-            sep3D.iloc[i] = turbine_powers
-        elif j == 1:
-            sep5D.iloc[i] = turbine_powers
-        elif j == 2:
-            sep7D.iloc[i] = turbine_powers
+        # Store value of turbine inflow velocity and thrust coefficient
+        turbine_vel = []
+        turbine_ct = []
+        for turbine in fi.floris.farm.turbine_map.turbines:
+            turbine_vel.append(turbine.average_velocity)
+            turbine_ct.append(turbine.Ct)
+        
+        # Store turbine results in dataframe for each iteration tested
+        sepdf.iloc[i] = turbine_powers
+        veldf.iloc[i] = turbine_vel
+        ctdf.iloc[i] = turbine_ct
+    
+    # Appends each layout's dataframes to list of corresponding dataframes
+    power_df.append(sepdf)
+    velocity_df.append(veldf)
+    ct_df.append(ctdf)
     
     # Plot horizontal cut of the wind farm for final iteration for each turbine layout
     if horPlot:
-        hor_plane = fi.get_hor_plane(
-                height = fi.floris.farm.turbines[0].hub_height,
-                x_resolution = resolution.x1,
-                y_resolution = resolution.x2,
-                x_bounds = tuple(bounds[0:2]),
-                y_bounds = tuple(bounds[2:4]),
-                Ind_Opts = Ind_Opts
-                )
-        u_mesh = hor_plane.df.u.values.reshape(resolution.x2,resolution.x1)
-        v_mesh = hor_plane.df.v.values.reshape(resolution.x2,resolution.x1)
-
-        if U0 is not None:
-                u_mesh=u_mesh/U0
-                v_mesh=v_mesh/U0
-
-        plane_x, plane_y = np.unique(hor_plane.df.x1),np.unique(hor_plane.df.x2)
-
-        # --- Plot and show
+        hor_plane = fi.get_hor_plane(x_resolution = resolution.x1, y_resolution = resolution.x2, Ind_Opts = Ind_Opts)
+    
         fig, ax = plt.subplots()
-        im = plotPlane(plane_x/D,plane_y/D,u_mesh,v_mesh,ax,minSpeed=minSpeed,maxSpeed=maxSpeed,
-                    nStreamlines=nStreamlines,levelsLines=levelsLines,axial=True,colors ='k')
-        ax.title.set_text(titles[j])
+        ax.title.set_text(titles[s])
+        wfct.visualization.visualize_cut_plane(hor_plane,ax)
         wfct.visualization.plot_turbines_with_fi(ax,fi)
-        ax.set_ylabel('r/D [-]')
-        ax.set_xlim([-4,sep[j]*5.5])
-        ax.set_ylim([-2,2])
 
-# # Plots the powers of turbines 1 through 4 for 3D separation as a function of the number of iterations
-# fig,ax = plt.subplots()
-# ax.plot(sep3D.reindex(columns = ['turbine '+str(i) for i in range(1,len(layout_y))]))
-# ax.set_ylabel('Power')
-# ax.set_xlabel('Number of Iterations')
-# ax.set_title('3D Separation')
-# ax.legend(['turbine '+str(i) for i in range(1,len(layout_y))])
+def normalize(df):
+    # Performs columnwise normalization for each column in df
+    norm_df = copy.deepcopy(df)
+    for i in norm_df.columns:
+        norm_df[i] /= norm_df[i].max()
+    return norm_df
 
-# Plots the power for each turbine individually for 5D separation as a function of nIter
-for i in range(len(layout_y)):
-    fig,ax = plt.subplots()
-    ax.plot(sep3D['turbine '+str(i)])
-    ax.set_title('Turbine '+str(i))
-    ax.set_xlabel('Iterations')
-    ax.set_ylabel('Power')
+if IterPlots:
+    def iterationplot(df_list,sep,ylabel):
+        # Plots the convergence for each turbine variable for each separtion
+        # Plots the normalized variable for each turbine in the field as a function of the number of iterations
+        fig,axs = plt.subplots(1, len(sep), sharey=True, sharex=True, figsize=(12.0,6.0))
+        for i in range(len(sep)):
+            ax = axs[i]
+            ax.plot(normalize(df_list[0]))
+            ax.set_title('%dD Separation' %sep[i])
+            ax.yaxis.set_major_formatter(ticker.ScalarFormatter(useOffset=False))
+            ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        axs[0].set_ylabel(ylabel)
+        # axs[len(sep)-1].legend(df_list[0].columns, loc="lower right") # TODO find better location for legend
+        fig.suptitle('Normalized Iteration Plot For %dx%d Layout' %(m,n))
+        fig.text(0.5,0.04,'Iterations', ha='center')
 
-# # Plots the power of each turbine as a function of separation and iterations
-# for i in range(len(layout_y)):
-#     fig,ax = plt.subplots()
-#     ax.plot(sep3D['turbine '+str(i)])
-#     ax.plot(sep5D['turbine '+str(i)])
-#     ax.plot(sep7D['turbine '+str(i)])
-#     ax.set_title('Turbine '+str(i))
-#     ax.set_xlabel('Iterations')
-#     ax.set_ylabel('Power')
-#     ax.legend(['3D','5D','7D'])
-#     plt.yscale('log')
+    iterationplot(power_df,sep,'Normalized Power')
+    iterationplot(velocity_df,sep,'Normalized Velocity')
+    iterationplot(ct_df,sep,'Normalized Ct')
 
-print('3D Seperation Between Turbines:\n',sep3D)
-print('5D Seperation Between Turbines:\n',sep5D)
-print('7D Seperation Between Turbines:\n',sep7D)
+    def turbineiteration(df_list,sep,ylabel):
+        # Plots the convergence for each turbine separtion simulation
+        # Plots the normalized variable for each turbine in the field as a function of the number of iterations
+        fig,axs = plt.subplots(1, len(layout_y), sharex=True, figsize=(15.0,4.0))
+        for (i,col) in enumerate(df_list[0].columns):
+            ax = axs[i]
+            ax.set_title(col)
+            ax.plot(df_list[0][col])
+            ax.get_yaxis().get_major_formatter().set_useOffset(False)
+            ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        axs[0].set_ylabel(ylabel)
+        fig.suptitle('Induction Iteration Test for %dD Separation' %sep[0])
+        fig.text(0.5,0.04,'Number of Iterations', ha='center')
+        fig.tight_layout(rect = [0,0.04,1,0.95])
+
+    turbineiteration(power_df,sep,'Power')
+    turbineiteration(velocity_df,sep,'Velocity')
+    turbineiteration(ct_df,sep,'Ct')
+
+if ReadOuts:
+    print('Total Number of Iterations Tested:', Ind_Opts['nIter'])
+
+    print('=========================================')
+    print('Turbine Powers')
+    print('-----------------------------------------')
+    for i in range(len(sep)):
+        print('%dD Separation Between Turbines:\n'%sep[i],power_df[i])
+    print('-----------------------------------------')
+    print('Turbine Velocities: ')
+    print('-----------------------------------------')
+    for i in range(len(sep)):
+        print('%dD Separation Between Turbines:\n'%sep[i],velocity_df[i])
+    print('-----------------------------------------')
+    print('Turbine Ct: ')
+    print('-----------------------------------------')
+    for i in range(len(sep)):
+        print('%dD Separation Between Turbines:\n'%sep[i],ct_df[i])
+
 
 plt.show()

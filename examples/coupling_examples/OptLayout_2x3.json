@@ -27,7 +27,7 @@
         "turbulence_intensity": [
           0.06
         ],
-        "wind_shear": 0.0,
+        "wind_shear": 0.12,
         "specified_wind_height": -1,
         "wind_veer": 0.0,
         "air_density": 1.225,
@@ -60,6 +60,7 @@
       "name": "nrel_5mw",
       "description": "NREL 5MW",
       "properties": {
+        "use_points_on_perimeter": false,
         "rotor_diameter": 126.0,
         "hub_height": 90.0,
         "blade_count": 3,
@@ -141,7 +142,8 @@
             "Model": "VCFF",
             "Ground": true,
             "nIter": 1,
-            "R_far_field": 8
+            "R_far_field": 8,
+            "Ct_test": false
           }
         }
       }

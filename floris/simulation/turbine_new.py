@@ -393,7 +393,7 @@ Returns:
     def update_position(self,r_hub):
         self.r_hub=np.asarray(r_hub).ravel().reshape(3,1)
 
-    def compute_induction(self, Ind_Opts, rotated_x, rotated_y, rotated_z):
+    def compute_induction(self, Ind_Opts, rotated_x, rotated_y, rotated_z, CT0=None):
         """ 
         Computes induction from the turbine as a result of the blockage effect. Applied to velocity 
         field to simulate the induction zone of a turbine.
@@ -411,7 +411,9 @@ Returns:
         if Ind_Opts['induction']:
             # update vortex cylinder velocity and loading
             r_bar_cut = 0.01
-            CT0       = self.Ct
+            if CT0 is None:
+                CT0       = self.Ct
+            # print('CT0: ', CT0)
             self.R = self.rotor_diameter/2*Ind_Opts['Rfact']
             nCyl      = 1 # For now
             Lambda    = 30 # if >20 then no swirl

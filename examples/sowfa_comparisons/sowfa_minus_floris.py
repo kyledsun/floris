@@ -22,8 +22,8 @@ import floris.tools.visualization as vis
 
 
 # Define a minspeed and maxspeed to use across visualiztions
-minspeed = 4.0
-maxspeed = 8.5
+minspeed = -7 #4.0
+maxspeed = 5.5 #8.5
 
 # Load the SOWFA case in
 si = wfct.sowfa_utilities.SowfaInterface("sowfa_example")
@@ -46,16 +46,28 @@ fi.calculate_wake(yaw_angles=si.yaw_angles)
 # Show projected and unprojected cut planes
 x_loc = 600
 
-cut_plane_sowfa = si.get_cross_plane(x_loc)
-cut_plane_floris = fi.get_cross_plane(x_loc)
+# cut_plane_sowfa = si.get_cross_plane(x_loc)
+cut_plane_sowfa = si.get_hor_plane(90.0)
+cut_plane_sowfa.df.u = cut_plane_sowfa.df.u-8.0
+# cut_plane_floris = fi.get_cross_plane(x_loc)
+cut_plane_floris = fi.get_hor_plane(fi.floris.farm.turbines[0].hub_height)
+cut_plane_floris.df.u = cut_plane_floris.df.u - 8.0
 cut_plane_floris_project = cp.project_onto(cut_plane_floris, cut_plane_sowfa)
 cut_plane_difference = cp.subtract(cut_plane_sowfa, cut_plane_floris_project)
 
-print(cut_plane_sowfa.df.head())
-print(cut_plane_floris_project.df.head())
-print(cut_plane_difference.df.head())
+print('SOWFA Cut Plane: \n', cut_plane_sowfa.df.head())
+print('Floris Cut Plane: \n', cut_plane_floris_project.df.head())
+print('Cut Plane Difference: \n', cut_plane_difference.df.head())
 
-fig, axarr = plt.subplots(2, 2, figsize=(10, 10))
+# print('SOWFA\n\tMax: %.4f, Min: %.4f' %(max(cut_plane_sowfa.df.u),min(cut_plane_sowfa.df.u)))
+# print('Floris\n\tMax: %.4f, Min: %.4f' %(max(cut_plane_floris.df.u),min(cut_plane_floris.df.u)))
+# print('Floris Project\n\tMax: %.4f, Min: %.4f' %(max(cut_plane_floris_project.df.u),min(cut_plane_floris_project.df.u)))
+# print('Difference\n\tMax: %.4f, Min: %.4f' %(max(cut_plane_difference.df.u),min(cut_plane_difference.df.u)))
+
+fig, axarr = plt.subplots(2, 2, figsize=(10, 5))
+
+minspeed = min(cut_plane_floris.df.u)
+maxspeed = max(cut_plane_floris.df.u)
 
 # SOWFA
 ax = axarr[0, 0]
@@ -85,5 +97,6 @@ wfct.visualization.visualize_cut_plane(
 )
 ax.set_title("SOWFA - FLORIS Projected")
 
+# fig.tight_layout()
 
 plt.show()

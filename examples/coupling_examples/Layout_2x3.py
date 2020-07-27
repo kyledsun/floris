@@ -56,7 +56,7 @@ def plotPlane(x,y,u,v,ax,minSpeed=None,maxSpeed=None, cmap='coolwarm', colors='w
         yseed=np.linspace(min(y)*0.9,max(y)*0.9,nStreamlines)
         start=np.array([yseed*0,yseed])
         sp=ax.streamplot(x,y,u,v,color='k',start_points=start.T,linewidth=0.7,density=30,arrowstyle='-')
-#         qv=streamQuiver(ax,sp,n=5,scale=40,angles='xy')
+        # qv=streamQuiver(ax,sp,n=5,scale=40,angles='xy')
     ax.set_aspect('equal')
 
     return im
@@ -70,8 +70,8 @@ fi = wfct.floris_interface.FlorisInterface(input_file, input_dict)
 # layout_y = [0,0,0,3*D,3*D,3*D]
 
 # Make a copy for optimization instance
-fi_opt = copy.deepcopy(fi)
-# fi_opt = wfct.floris_interface.FlorisInterface(input_file, input_dict)
+# fi_opt = copy.deepcopy(fi)
+fi_opt = wfct.floris_interface.FlorisInterface(input_file, input_dict)
 # Read in induction options from input file
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 
@@ -147,7 +147,7 @@ ax = axes[0]
 im = plotPlane(plane_x/D,plane_y/D,u_mesh,v_mesh,ax,minSpeed=minSpeed,maxSpeed=maxSpeed,
             nStreamlines=nStreamlines,levelsLines=levelsLines,axial=True,colors ='k')
 ax.title.set_text(titles[0])
-wfct.visualization.plot_turbines_with_fi(ax,fi)
+# wfct.visualization.plot_turbines_with_fi(ax,fi)
 ax.set_ylabel('r/D [-]')
 ax.set_xlim([-4,16])
 ax.set_ylim([-2,5])
@@ -156,7 +156,7 @@ ax = axes[1]
 im_opt = plotPlane(opt_x/D,opt_y/D,u_optmesh,v_optmesh,ax,minSpeed=minSpeed,maxSpeed=maxSpeed,
             nStreamlines=nStreamlines,levelsLines=levelsLines,axial=True,colors ='k')
 ax.title.set_text(titles[1])
-wfct.visualization.plot_turbines_with_fi(ax,fi_opt)
+# wfct.visualization.plot_turbines_with_fi(ax,fi_opt)
 ax.set_ylabel('r/D [-]')
 ax.set_xlabel('x/D [-]')
 ax.set_xlim([-4,16])
