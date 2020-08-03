@@ -22,10 +22,10 @@ maxSpeed=1.03
 levelsLines=np.sort([1.05,1.0,0.99,0.98,0.95,0.9,0.5])
 
 # --- Resolution Parameters
-ny=30 # 200
+ny=100 # 200
 nx=ny*4
 
-input_file="OptLayout_2x3.json"
+input_file="../OptLayout_2x3.json"
 input_dict=None
 D=126
 resolution=Vec3(nx, ny, 2)
@@ -80,6 +80,9 @@ if Induction:
     Ind_Opts['induction'] = True
 else:
     Ind_Opts['induction'] = False
+
+fi.IndOpts = Ind_Opts
+fi_opt.IndOpts = Ind_Opts
 
 # Calculate wake and get horizontal plane at turbine height for original farm field
 fi.calculate_wake()

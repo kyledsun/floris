@@ -27,10 +27,6 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 
 D = fi.floris.farm.turbines[0].rotor_diameter
 bounds=[-4*D,16*D,-2*D-10,5*D+10,89,90] # xmin xmax .. zmin zmax
-Induction = True
-
-# layout_x = [0,7*D,14*D,0,7*D,14*D]
-# layout_y = [0,0,0,3*D,3*D,3*D]
 
 # Make a copy for optimization instance
 fi_opt = copy.deepcopy(fi)
@@ -38,17 +34,13 @@ fi_opt = copy.deepcopy(fi)
 # Read in induction options from input file
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 
-if Induction:
-    print(">>> Blockage effect is modeled")
-    Ind_Opts['induction'] = True
-else:
-    Ind_Opts['induction'] = False
+Ind_Opts['induction'] = True
 
 fi.IndOpts = Ind_Opts
 fi_opt.IndOpts = Ind_Opts
 
 # Calculate wake and get horizontal plane at turbine height for original farm field
-fi.calculate_wake(Ind_Opts=Ind_Opts)
+fi.calculate_wake()
 hor_plane = fi.get_hor_plane(
         x_resolution = resolution.x1,
         y_resolution = resolution.x2,

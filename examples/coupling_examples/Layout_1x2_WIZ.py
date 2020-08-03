@@ -1,8 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-# from floris.induction import options_dict
 from helper_functions import *
+
+"""
+Plots horizontal plane for 1x2 turbine array with and without blockage effects.
+Used to compare to original wiz code. Uses helper functions to plot rather than
+FLORIS visualization
+"""
 
 fontsize = 12
 plt.rc('font', family='serif')
@@ -19,18 +24,14 @@ maxSpeed=1.03
 levelsLines=np.sort([1.05,1.0,0.99,0.98,0.95,0.9,0.5])
 
 # ---
-ny=30 # 200
+ny=100 # 30
 nx=ny*4
 
-input_file="Layout_1x2_v2.json"
+input_file="Layout_1x2.json"
 input_dict=None
 D=126
 resolution=Vec3(nx, ny, 2)
 bounds=[-4*D,14*D,-2*D-10,2*D+10,89,90] # xmin xmax .. zmin zmax
-# Ind_Opts=options_dict()
-# Ind_Opts['Rfact']=1.0
-# Ind_Opts['GammaFact']=1.0
-# Ind_Opts['Ground']=True
 #Induction = False # Default for inclusion of the induction zone
 
 
@@ -43,15 +44,12 @@ titles.append('FLORIS (with induction)')
 if bCompute:
     planes=[]
     print('-----------------------------------------------------------------')
-    # Ind_Opts['induction']=False
     Induction = False
     planes.append(get_HH_plane_vel(input_file, input_dict, Induction=Induction, resolution=resolution, bounds_to_set=bounds))
     #plane_x,plane_y,u_mesh,v_mesh, fi = get_HH_plane_vel(input_file, input_dict, Ind_Opts, resolution, bounds_to_set=bounds)
     savePlane(planes[-1],'_data/Layout12_0_',U0=U0)
 
     print('-----------------------------------------------------------------')
-    # Ind_Opts['induction']=True
-    # Ind_Opts['blend']=False
     Induction = True
     planes.append(get_HH_plane_vel(input_file, input_dict, Induction=Induction, resolution=resolution, bounds_to_set=bounds))
     savePlane(planes[-1],'_data/Layout12_1_',U0=U0)

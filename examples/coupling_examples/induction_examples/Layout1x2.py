@@ -9,24 +9,16 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import floris.tools as wfct
 from floris.utilities import Vec3
 
-# --- Plot options
-bCompute=True
-bColorBar=False
-nStreamlines=0
-U0 =6
-minSpeed=0.5
-maxSpeed=1.03
-levelsLines=np.sort([1.05,1.0,0.99,0.98,0.95,0.9,0.5])
+"""
+Plots horizontal plane for 1x2 turbine array with and without blockage effects
+"""
 
 # ---
 ny=100
 nx=ny*4
 resolution=Vec3(nx, ny, 2)
 
-input_file="Layout_1x2_v2.json"
-
-# bounds=[-4*D,14*D,-2*D-10,2*D+10,89,90] # xmin xmax .. zmin zmax
-#Induction = False # Default for inclusion of the induction zone
+input_file="../Layout_1x2.json"
 
 # Initialize floris interface object
 fi = wfct.floris_interface.FlorisInterface(input_file)
@@ -68,11 +60,11 @@ titles.append('FLORIS (with induction)')
 fig, axs = plt.subplots(nrows=len(titles), ncols=1, sharex=True, sharey=True)
 # Plot flow field without induction
 wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0])
-# wfct.visualization.plot_turbines_with_fi(axs[0],fi)
+wfct.visualization.plot_turbines_with_fi(axs[0],fi)
 axs[0].set_title(titles[0])
 # Plot flow field with induction
 wfct.visualization.visualize_cut_plane(hor_ind_plane, ax=axs[1])
-# wfct.visualization.plot_turbines_with_fi(axs[1],fi_ind)
+wfct.visualization.plot_turbines_with_fi(axs[1],fi_ind)
 axs[1].set_title(titles[1])
 
 plt.show()

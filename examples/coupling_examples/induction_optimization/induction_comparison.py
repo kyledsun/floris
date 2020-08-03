@@ -14,18 +14,24 @@ Compares the optimization of a wind farm with and without modelling blockage eff
 induction zone of turbines.
 """
 
-input_file="OptLayout_2x3.json"
+input_file="../OptLayout_2x3.json"
 # Initialize the floris interface
 fi = wfct.floris_interface.FlorisInterface(input_file)
 
-sep = 5
+# Set paramters for iteration test
+sep = 5 # streamwise separation for turbines (*D)
+sepy = 3 # spanwise spearation between turbines (*D)
+# Creates a turbine field with n rows and m columns
+n = 5
+m = 1
+
 D = fi.floris.farm.turbines[0].rotor_diameter
-numTurb = 5
 layout_x = []
 layout_y = []
-for i in range(numTurb):
-    layout_y.append(0)
-    layout_x.append(i*D*sep)
+for i in range(m):
+    for j in range(n):
+        layout_x.append(j*sep*D)
+        layout_y.append(i*sepy*D)
 
 # Reinitialize flow field with new specified layout
 fi.reinitialize_flow_field(layout_array=[layout_x,layout_y])
@@ -49,7 +55,7 @@ hor_plane = fi.get_hor_plane(x_resolution=400, y_resolution=100, y_bounds=[-500,
 # Plot and show
 fig, axs = plt.subplots(nrows = 2, ncols=1)
 wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0])
-axs[0].set_title("Baseline")
+axs[0].set_title("No Induction")
 
 base_power = fi.get_farm_power()
 # =============================================================================
@@ -84,30 +90,30 @@ axs[1].set_title("With Blockage Effect")
 
 ind_power = fi_ind.get_farm_power()
 
-print("==========================================")
+print("================================================================")
 print("Farm Powers: ")
-print("------------------------------------------")
-print('Baseline Power:', base_power)
+print("----------------------------------------------------------------")
+print('No Induction Power:', base_power)
 print('Induction Power:', ind_power)
 
-print("==========================================")
+print("================================================================")
 print("Total Power Change = %.1f%%" %(100.0 * (ind_power - base_power) / base_power))
 
-print("==========================================")
+print("================================================================")
 print('Turbine Powers:')
-print("------------------------------------------")
-print('\t\tBaseline\tInduction')
-print("------------------------------------------")
+print("----------------------------------------------------------------")
+print('\t\tNo Induction\tInduction\tDifference')
+print("----------------------------------------------------------------")
 init_powers = fi.get_turbine_power()
 opt_powers = fi_ind.get_turbine_power()
 for i in range(len(init_powers)):
-    print('Turbine %d: \t%.2f\t%.2f' %(i, init_powers[i],opt_powers[i]))
+    print('Turbine %d: \t%.2f\t%.2f\t%.2f' %(i, init_powers[i],opt_powers[i],(opt_powers[i] - init_powers[i])))
 
-print("==========================================")
+print("================================================================")
 print('Velocities Seen By Each Turbine:')
-print("------------------------------------------")
-print('\t\tBaseline\tInduction')
-print("------------------------------------------")
+print("----------------------------------------------------------------")
+print('\t\tNo Induction\tInduction\tDifference')
+print("----------------------------------------------------------------")
 turbine_vel = []
 indTurbine_vel = []
 for turbine in fi.floris.farm.turbine_map.turbines:
@@ -116,14 +122,14 @@ for turbine in fi_ind.floris.farm.turbine_map.turbines:
     indTurbine_vel.append(turbine.average_velocity)
 
 for i in range(len(turbine_vel)):
-    print('Turbine %d: \t%.2f\t\t%.2f' %(i,turbine_vel[i],indTurbine_vel[i]))
+    print('Turbine %d: \t%.2f\t\t%.2f\t\t%.2f' %(i,turbine_vel[i],indTurbine_vel[i],(indTurbine_vel[i]-turbine_vel[i])))
 
-print("==========================================")
+print("================================================================")
 print('Optimized Yaw Angles (deg): ')
-print("------------------------------------------")
-print('\t\tBaseline\tInduction')
-print("------------------------------------------")
+print("----------------------------------------------------------------")
+print('\t\tNo Induction\tInduction\tDifference')
+print("----------------------------------------------------------------")
 for i in range(len(yaw_angles)):
-    print("Turbine %d:\t%.2f\t\t%.2f " %(i,yaw_angles[i],yaw_ind_angles[i]))
+    print("Turbine %d:\t%.2f\t\t%.2f\t\t%.2f" %(i,yaw_angles[i],yaw_ind_angles[i],(yaw_ind_angles[i]-yaw_angles[i])))
 
 plt.show()

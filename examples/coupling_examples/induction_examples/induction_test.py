@@ -20,7 +20,7 @@ ny= 100
 nx=ny*4
 resolution=Vec3(nx, ny, 2)
 
-input_file="OptLayout_2x3.json"
+input_file="../OptLayout_2x3.json"
 # Initialize the floris interface
 fi = wfct.floris_interface.FlorisInterface(input_file)
 

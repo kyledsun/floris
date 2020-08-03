@@ -14,7 +14,7 @@ import floris.tools as wfct
 from floris.utilities import Vec3
 
 """
-Returns the power outputs of floris as a function of the number of calculate_induction iterations used.
+Returns the power outputs, input velocities and ct values of floris as a function of the number of calculate_induction iterations used.
 Tests the convergence of the results for different seperation distances between turbines for a 
 specified wind farm.
 """
@@ -23,17 +23,17 @@ specified wind farm.
 Induction = True # Include induction
 horPlot = True # Plots horizontal cuts of wind farms for each wind farm layout
 IterPlots = True # Plots powers as a function of iteration plots
-ReadOuts = True # Prints dataframes of turbine powers as a function of iterations used
+ReadOuts = False # Prints dataframes of turbine powers as a function of iterations used
 
 # --- Resolution Parameters
 ny=100
 nx=ny*4
 
 sep = [3,5,7] # List of streamwise separations between turbines (*D)
-titles = ['3D Seperation','5D Separation','7D Separation']
+titles = [str(i)+'D separation' for i in sep]
 
 # Create list of iterations to be tested
-nIter = np.arange(1,11)
+nIter = np.arange(1,6)
 
 sepy = 3 # spanwise spearation between turbines (*D)
 # Creates a turbine field with n rows and m columns
@@ -134,13 +134,22 @@ if IterPlots:
         # Plots the normalized variable for each turbine in the field as a function of the number of iterations
         fig,axs = plt.subplots(1, len(sep), sharey=True, sharex=True, figsize=(12.0,6.0))
         for i in range(len(sep)):
-            ax = axs[i]
+            if len(sep) == 1:
+                ax = axs
+                ax.set_ylabel(ylabel)
+            else:
+                ax = axs[i]
+                axs[0].set_ylabel(ylabel)
             ax.plot(normalize(df_list[0]))
             ax.set_title('%dD Separation' %sep[i])
             ax.yaxis.set_major_formatter(ticker.ScalarFormatter(useOffset=False))
             ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-        axs[0].set_ylabel(ylabel)
-        # axs[len(sep)-1].legend(df_list[0].columns, loc="lower right") # TODO find better location for legend
+            
+            if len(sep) == 1:
+                ax.legend(df_list[0].columns, loc="lower right") # TODO find better location for legend
+            else:
+                axs[len(sep)-1].legend(df_list[0].columns, loc="lower right") # TODO find better location for legend
+        
         fig.suptitle('Normalized Iteration Plot For %dx%d Layout' %(m,n))
         fig.text(0.5,0.04,'Iterations', ha='center')
 

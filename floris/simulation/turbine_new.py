@@ -408,7 +408,7 @@ Returns:
             rotated_z (np.array): The z-coordinates of the flow field grid
                 rotated so the new x axis is aligned with the wind direction.
         """
-        if Ind_Opts['induction']:
+        if Ind_Opts['induction']: # Can remove (won't be called unless induction)
             # update vortex cylinder velocity and loading
             r_bar_cut = 0.01
             if CT0 is None:

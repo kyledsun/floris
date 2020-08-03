@@ -268,7 +268,8 @@
           "Model": "VCFF",
           "Ground": true,
           "nIter": 1,
-          "R_far_field": 8}
+          "R_far_field": 8,
+          "Ct_test": false}
     }
   }
 }
