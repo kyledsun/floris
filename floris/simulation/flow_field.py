@@ -21,9 +21,7 @@ import copy
 from ..utilities import Vec3, cosd, sind, tand
 
 #import wiz
-#from floris.simulation.wake_vortex.Solver import Ct_const_cutoff
 from floris.simulation.wake_vortex.Solver import Ct_const_cutoff
-# from floris.induction import options_dict
 
 import time
 def pretty_time(t):
@@ -721,6 +719,9 @@ class FlowField:
                     rotated_x = initial_rotated_x - x_grid_offset
 
         def compute_wakes(u_wake,v_wake,w_wake,u_ind=None,v_ind=None,w_ind=None):
+            self.v = np.zeros(np.shape(self.u))
+            self.w = np.zeros(np.shape(self.u))
+            
             if u_ind is None:
                 u_ind = 0
 
@@ -837,6 +838,7 @@ class FlowField:
                     if self.wake.velocity_model.model_string == "curl":
                         self.v = turb_v_wake
                         self.w = turb_w_wake
+                    # Why is this section different
                     else:
                         self.v = self.v + turb_v_wake
                         self.w = self.w + turb_w_wake
@@ -897,7 +899,7 @@ class FlowField:
         PowerTot=0
         nWT=len(sorted_map)
         for i, (coord,turbine) in enumerate(sorted_map):
-            # print('turbine %d:' %i,turbine.power)
+            print('turbine %d:' %i,turbine.power)
             PowerTot+=turbine.power
         print('Avg Power per WT:',PowerTot/nWT/1000)
 
@@ -929,11 +931,11 @@ class FlowField:
                 #print_Ct()
             PowerTot=0
             nWT=len(sorted_map)
-            for coord,turbine in sorted_map:
-                # print('turbine %d:' %i,turbine.power)
+            for i, (coord,turbine) in enumerate(sorted_map):
+                print('turbine %d:' %i,turbine.power)
                 PowerTot+=turbine.power
             print('Avg Power per WT:',PowerTot/nWT/1000)
-
+            self.u_induct = u_ind
             u_wake = (u_wake - u_ind)
             v_wake = (v_wake + v_ind)
             w_wake = (w_wake + w_ind)
@@ -965,11 +967,12 @@ class FlowField:
                         #print_Ct()
                     PowerTot=0
                     nWT=len(sorted_map)
-                    for coord,turbine in sorted_map:
-                        # print('turbine %d:' %i,turbine.power)
+                    for i, (coord,turbine) in enumerate(sorted_map):
+                        print('turbine %d:' %i,turbine.power)
                         PowerTot+=turbine.power
                     print('Avg Power per WT:',PowerTot/nWT/1000)
 
+                self.u_induct = u_ind
                 u_wake = (u_wake - u_ind)
                 v_wake = (v_wake + v_ind)
                 w_wake = (w_wake + w_ind)

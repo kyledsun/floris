@@ -94,7 +94,8 @@ class FlorisInterface(LoggerBase):
 
         if Ind_Opts is None:
             Ind_Opts = self.IndOpts
-        # print('Calculate Wake IndOpts: ',Ind_Opts)
+        # else: self.IndOpts = Ind_Opts
+        # print("Ind_Opts calculate wake: ", Ind_Opts)
 
         self.floris.farm.flow_field.calculate_wake(
             no_wake=no_wake,
@@ -347,6 +348,11 @@ class FlorisInterface(LoggerBase):
         if normal_vector == "x":
             points = np.row_stack((x3_array, x1_array, x2_array))
 
+        if Ind_Opts is None:
+            Ind_Opts = self.IndOpts
+        # else: self.IndOpts = Ind_Opts
+        # print("Ind_Opts get_plane_of_points: ", Ind_Opts)
+
         # Recalculate wake with these points
         flow_field.calculate_wake(points=points,Ind_Opts=Ind_Opts)
 
@@ -357,6 +363,9 @@ class FlorisInterface(LoggerBase):
         u_flat = flow_field.u.flatten()
         v_flat = flow_field.v.flatten()
         w_flat = flow_field.w.flatten()
+        if Ind_Opts['induction']:
+            u_ind_flat = flow_field.u_induct.flatten()
+        else: u_ind_flat = np.zeros(np.shape(u_flat))
 
         # Create a df of these
         if normal_vector == "z":
@@ -368,6 +377,7 @@ class FlorisInterface(LoggerBase):
                     "u": u_flat,
                     "v": v_flat,
                     "w": w_flat,
+                    "u_ind": u_ind_flat
                 }
             )
         if normal_vector == "x":
@@ -379,6 +389,7 @@ class FlorisInterface(LoggerBase):
                     "u": u_flat,
                     "v": v_flat,
                     "w": w_flat,
+                    "u_ind": u_ind_flat
                 }
             )
         if normal_vector == "y":
@@ -390,6 +401,7 @@ class FlorisInterface(LoggerBase):
                     "u": u_flat,
                     "v": v_flat,
                     "w": w_flat,
+                    "u_ind": u_ind_flat
                 }
             )
 
@@ -512,7 +524,8 @@ class FlorisInterface(LoggerBase):
         
         if Ind_Opts is None:
             Ind_Opts = self.IndOpts
-        # print('Get_hor_plane IndOpts: ',Ind_Opts)
+        # else: self.IndOpts = Ind_Opts
+        # print("Ind_Opts get_hor_plane: ", Ind_Opts)
 
         # Get the points of data in a dataframe
         df = self.get_plane_of_points(
@@ -671,6 +684,12 @@ class FlorisInterface(LoggerBase):
         flow_field.reinitialize_flow_field(with_resolution=resolution, bounds_to_set=bounds_to_set)
         self.logger.info(resolution)
         # print(resolution)
+
+        if Ind_Opts is None:
+            Ind_Opts = self.IndOpts
+        # else: self.IndOpts = Ind_Opts
+        # print("Ind_Opts get_flow_data: ", Ind_Opts)
+
         flow_field.calculate_wake(Ind_Opts=Ind_Opts)
 
         order = "f"

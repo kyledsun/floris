@@ -43,10 +43,10 @@ fi_opt.IndOpts = Ind_Opts
 fi.calculate_wake()
 hor_plane = fi.get_hor_plane(
         x_resolution = resolution.x1,
-        y_resolution = resolution.x2,
+        y_resolution = resolution.x2#,
         # x_bounds = tuple(bounds[0:2]),
         # y_bounds = tuple(bounds[2:4]),
-        Ind_Opts = Ind_Opts
+        # Ind_Opts = Ind_Opts
         )
 
 # Store value for total wind farm power
@@ -71,14 +71,14 @@ yaw_opt = YawOptimization(fi_opt, minimum_yaw_angle=min_yaw, maximum_yaw_angle=m
 yaw_angles = yaw_opt.optimize()
 
 # Calculate wake and get horizontal plane at turbine height for yaw optimized farm field
-fi_opt.calculate_wake(Ind_Opts=Ind_Opts,yaw_angles=yaw_angles)
+fi_opt.calculate_wake(yaw_angles=yaw_angles)
 
 hor_plane_opt = fi_opt.get_hor_plane(
         x_resolution = resolution.x1,
-        y_resolution = resolution.x2,
+        y_resolution = resolution.x2#,
         # x_bounds = tuple(bounds[0:2]),
         # y_bounds = tuple(bounds[2:4]),
-        Ind_Opts = Ind_Opts
+        # Ind_Opts = Ind_Opts
         )
 
 power_opt = fi_opt.get_farm_power()
