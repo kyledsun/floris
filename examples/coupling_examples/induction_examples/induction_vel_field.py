@@ -38,20 +38,24 @@ hor_plane = fi.get_hor_plane(x_resolution = resolution.x1, y_resolution = resolu
 
 hor_plane2 = copy.deepcopy(hor_plane)
 hor_plane2.df.u = hor_plane2.df.u_ind
+print(hor_plane.df.head())
+# U0 = fi.floris.farm.initwind[0]
+# yaw = fi.floris.farm.turbines[0].yaw_pos
+# hor_plane2.df.u = ( (hor_plane2.df.u_ind + U0)*np.cos(yaw) + (hor_plane2.df.v_ind)*np.sin(yaw) ) /U0*np.cos(yaw)
 
 # ===============================================================================================
 # Vertical Plot
 # ===============================================================================================
 
-# y_plane = fi.get_y_plane(y_loc=0,x_resolution = resolution.x1, z_resolution = resolution.x2)
-# y_plane2 = copy.deepcopy(y_plane)
-# y_plane2.df.u = y_plane2.df.u_ind
+y_plane = fi.get_y_plane(y_loc=0,x_resolution = resolution.x1, z_resolution = resolution.x2)
+y_plane2 = copy.deepcopy(y_plane)
+y_plane2.df.u = y_plane2.df.u_ind
 
-# fig, ax = plt.subplots()
-# # Plot induction
-# wfct.visualization.visualize_cut_plane(y_plane2, ax=ax)#, minSpeed = -0.25, maxSpeed = 0.25)
-# ax.plot(np.linspace(0,200,10),np.ones(10)*90)
-# ax.set_title('Induction Only Vertical Plot')
+fig, ax = plt.subplots()
+# Plot induction
+wfct.visualization.visualize_cut_plane(y_plane2, ax=ax)#, minSpeed = -0.25, maxSpeed = 0.25)
+ax.plot(np.linspace(0,200,10),np.ones(10)*90)
+ax.set_title('Induction Only Vertical Plot')
 
 # ===============================================================================================
 
@@ -60,6 +64,20 @@ fig, ax = plt.subplots()
 wfct.visualization.visualize_cut_plane(hor_plane2, ax=ax)#, minSpeed = -0.25, maxSpeed = 0.25)
 wfct.visualization.plot_turbines_with_fi(ax,fi)
 ax.set_title('Induction Only')
+
+# # ===============================================================================================
+# # Ground Effect
+# # ===============================================================================================
+# hor_plane3 = fi.get_hor_plane(height = -fi.floris.farm.turbines[0].hub_height, x_resolution = resolution.x1, y_resolution = resolution.x2)
+# hor_plane3.df.u = hor_plane3.df.u_ind
+
+# fig, ax = plt.subplots()
+# # Plot induction
+# wfct.visualization.visualize_cut_plane(hor_plane3, ax=ax)#, minSpeed = -0.25, maxSpeed = 0.25)
+# # wfct.visualization.plot_turbines_with_fi(ax,fi)
+# ax.set_title('Induction Only Ground')
+
+# ===============================================================================================
 
 # fig, ax = plt.subplots(nrows = 3, sharex=True, sharey=True)
 # # Plot flow field with induction
@@ -88,8 +106,5 @@ ax.set_title('Induction Only')
 # wfct.visualization.plot_turbines_with_fi(ax[2],fi2)
 # ax[2].set_title('Flow Field without Induction')
 # fig.tight_layout()
-
-for turbine in fi.floris.farm.turbine_map.turbines:
-    print("Turbine Ct:", turbine.Ct)
 
 plt.show()

@@ -19,7 +19,7 @@
       "description": "Example 1x2 Wind Farm",
       "properties": {
         "wind_speed": [
-          6.0
+          10.0
         ],
         "wind_direction": [
           270.0

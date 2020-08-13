@@ -176,7 +176,7 @@ def visualize_cut_plane(
 
     # Add line contour
     line_contour_cut_plane(
-        cut_plane, ax=ax, levels=levels, colors="w", linewidths=0.8, alpha=0.3
+        cut_plane, ax=ax, levels=levels, colors="g", linewidths=0.8, alpha=0.3
     )
 
     # Make equal axis

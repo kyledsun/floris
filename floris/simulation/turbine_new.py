@@ -128,7 +128,7 @@ Returns:
         
         self.set_yaw_angle(self.yaw_angle)
         self.update_position(self.r_hub)
-        self.U0_g = np.asarray([0,0,10]).ravel().reshape(3,1)
+        self.U0_g = np.asarray([10,0,0]).ravel().reshape(3,1)
         #self.update_wind([0,0,10])
         self.name=''
         self.r=None
@@ -411,28 +411,52 @@ Returns:
                 rotated so the new x axis is aligned with the wind direction.
         """
         if Ind_Opts['induction']: # Can remove (won't be called unless induction)
-            # update vortex cylinder velocity and loading
-            r_bar_cut = 0.01
-            # r_bar_cut = 0.11
-            # r_bar_tip = 0.9
-            # print("------Ct:", self.Ct)
-            if CT0 is None:
-                CT0       = self.Ct
-            # print('CT0: ', CT0)
-            self.R = self.rotor_diameter/2*Ind_Opts['Rfact']
-            nCyl      = 1 # For now
-            Lambda    = 30 # if >20 then no swirl
-            vr_bar    = np.linspace(0,1.0,100)
-            Ct_AD     = Ct_const_cutoff(CT0,r_bar_cut,vr_bar) # TODO change me to distributed
-            # Ct_AD     = Ct_const_cutoff(CT0,r_bar_cut,vr_bar,r_bar_tip) # TODO change me to distributed
-            gamma_t_Ct = None
-            self.update_loading(r=vr_bar*self.R, VC_Ct=Ct_AD, Lambda=Lambda, nCyl=nCyl, gamma_t_Ct=gamma_t_Ct)
-            self.gamma_t= self.gamma_t*Ind_Opts['GammaFact']
-            root  = False
-            longi = False
-            tang  = True
-            # print('.',end='')
-            ux,uy,uz = self.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=True, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
+            if Ind_Opts['Ct_test']:
+                print('Ct-test')
+                # update vortex cylinder velocity and loading
+                r_bar_cut = 0.11
+                r_bar_tip = 0.9
+                if CT0 is None:
+                    CT0       = self.Ct
+                print('CT0: ', CT0)
+                self.R = self.rotor_diameter/2*Ind_Opts['Rfact']
+                nCyl      = 1 # For now
+                Lambda    = np.inf
+                vr_bar    = np.linspace(0,1.0,100)
+                Ct_AD     = Ct_const_cutoff(CT0,r_bar_cut,vr_bar,r_bar_tip) # TODO change me to distributed
+                gamma_t_Ct = None
+                self.update_loading(r=vr_bar*self.R, VC_Ct=Ct_AD, Lambda=Lambda, nCyl=nCyl, gamma_t_Ct=gamma_t_Ct)
+                self.gamma_t= self.gamma_t*Ind_Opts['GammaFact']
+                root  = False
+                longi = False
+                tang  = True
+                # print('.',end='')
+                ux,uy,uz = self.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=False, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
+            else:
+                # update vortex cylinder velocity and loading
+                r_bar_cut = 0.01
+                # r_bar_cut = 0.11
+                # r_bar_tip = 0.9
+                # print("------Ct:", self.Ct)
+                if CT0 is None:
+                    CT0       = self.Ct
+                # print('CT0: ', CT0)
+                self.R = self.rotor_diameter/2*Ind_Opts['Rfact']
+                nCyl      = 1 # For now
+                Lambda    = 30 # if >20 then no swirl
+                # Lambda    = np.inf
+                vr_bar    = np.linspace(0,1.0,100)
+                Ct_AD     = Ct_const_cutoff(CT0,r_bar_cut,vr_bar) # TODO change me to distributed
+                # Ct_AD     = Ct_const_cutoff(CT0,r_bar_cut,vr_bar,r_bar_tip) # TODO change me to distributed
+                gamma_t_Ct = None
+                self.update_loading(r=vr_bar*self.R, VC_Ct=Ct_AD, Lambda=Lambda, nCyl=nCyl, gamma_t_Ct=gamma_t_Ct)
+                self.gamma_t= self.gamma_t*Ind_Opts['GammaFact']
+                # print('gamma_t: ', self.gamma_t)
+                root  = False
+                longi = False
+                tang  = True
+                # print('.',end='')
+                ux,uy,uz = self.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=True, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
 
         return ux,uy,uz
 
