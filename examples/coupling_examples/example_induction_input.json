@@ -32,13 +32,9 @@
         "wind_veer": 0.0,
         "air_density": 1.225,
         "layout_x": [
-          0.0,
-          630,
-          1260
+          0.0
         ],
         "layout_y": [
-          0.0,
-          0.0,
           0.0
         ],
         "wind_x": [
@@ -88,7 +84,7 @@
             24.0 , 24.5, 25.0 , 25.5]
         },
         "blade_pitch": 0.0,
-        "yaw_angle": 0.0,
+        "yaw_angle": 30.0,
         "tilt_angle": 0.0,
         "TSR": 8.0
       }
@@ -134,7 +130,7 @@
             "GammaFact": 1,
             "Model": "VCFF",
             "Ground": true,
-            "nIter": 5,
+            "nIter": 2,
             "R_far_field": 8,
             "Ct_test": false
           }

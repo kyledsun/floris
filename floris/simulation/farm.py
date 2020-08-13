@@ -165,6 +165,7 @@ class Farm:
 
         for yaw_angle, turbine in zip(yaw_angles, self.turbines):
             turbine.yaw_angle = yaw_angle
+            turbine.set_yaw_angle(yaw_angle)
 
     # Getters & Setters
 

@@ -25,6 +25,24 @@ input_file="OptLayout_2x3.json"
 # Initialize the floris interface
 fi = wfct.floris_interface.FlorisInterface(input_file)
 
+# Set paramters for iteration test
+sep = 5 # streamwise separation for turbines (*D)
+sepy = 3 # spanwise spearation between turbines (*D)
+# Creates a turbine field with n rows and m columns
+n = 3
+m = 2
+
+D = fi.floris.farm.turbines[0].rotor_diameter
+layout_x = []
+layout_y = []
+for i in range(m):
+    for j in range(n):
+        layout_x.append(j*sep*D)
+        layout_y.append(i*sepy*D)
+
+# Reinitialize flow field with new specified layout
+fi.reinitialize_flow_field(layout_array=[layout_x,layout_y])
+
 D = fi.floris.farm.turbines[0].rotor_diameter
 bounds=[-4*D,16*D,-2*D-10,5*D+10,89,90] # xmin xmax .. zmin zmax
 
@@ -35,6 +53,7 @@ fi_opt = copy.deepcopy(fi)
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 
 Ind_Opts['induction'] = True
+Ind_Opts['Model'] = 'VC'
 
 fi.IndOpts = Ind_Opts
 fi_opt.IndOpts = Ind_Opts
@@ -87,16 +106,21 @@ power_opt = fi_opt.get_farm_power()
 # Plot Results
 # ==================================================================================
 
+minspeed = -0.4
+maxspeed = 8.2
+
 # --- Plot and show
 fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True, figsize=(12.0, 6.0))
-wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0])
+wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0], minSpeed=minspeed, maxSpeed=maxspeed)
 wfct.visualization.plot_turbines_with_fi(axs[0],fi)
 axs[0].set_title("Baseline Case for U = 8 m/s, Wind Direction = 270$^\circ$")
 
-wfct.visualization.visualize_cut_plane(hor_plane_opt, ax=axs[1])
+wfct.visualization.visualize_cut_plane(hor_plane_opt, ax=axs[1], minSpeed=minspeed, maxSpeed=maxspeed)
 wfct.visualization.plot_turbines_with_fi(axs[1],fi_opt)
 axs[1].set_title("Optimized Case for U = 8 m/s, Wind Direction = 270$^\circ$")
 
+print("==========================================")
+print("Induction: ", Ind_Opts['induction'])
 print("==========================================")
 print("optimized yaw angles = ")
 for i in range(len(yaw_angles)):

@@ -33,7 +33,7 @@ fi.calculate_wake(Ind_Opts=Ind_Opts)
 hor_plane = fi.get_hor_plane(x_resolution = resolution.x1, y_resolution = resolution.x2, Ind_Opts = Ind_Opts)
 
 # =============================================================================
-# Induction
+print('---------------Induction Calculation ----------------')
 # =============================================================================
 # Make a copy for floris interface with induction
 fi_ind = copy.deepcopy(fi)

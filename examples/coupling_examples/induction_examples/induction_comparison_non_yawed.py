@@ -22,7 +22,7 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 sep = 5 # streamwise separation for turbines (*D)
 sepy = 3 # spanwise spearation between turbines (*D)
 # Creates a turbine field with n rows and m columns
-n = 4
+n = 5
 m = 1
 
 D = fi.floris.farm.turbines[0].rotor_diameter
@@ -75,13 +75,15 @@ axs[1].set_title("With Blockage Effect")
 ind_power = fi_ind.get_farm_power()
 
 print("================================================================")
+print('Layout: %dx%d, Induction Iterations: %d, Streamwise Separation: %d' %(m,n,Ind_Opts['nIter'],sep))
+print("================================================================")
 print("Farm Powers: ")
 print("----------------------------------------------------------------")
 print('No Induction Power:', base_power)
 print('Induction Power:', ind_power)
 
 print("================================================================")
-print("Total Power Change = %.1f%%" %(100.0 * (ind_power - base_power) / base_power))
+print("Total Power Change = %.2f%%" %(100.0 * (ind_power - base_power) / base_power))
 
 print("================================================================")
 print('Turbine Powers:')

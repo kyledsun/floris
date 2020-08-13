@@ -23,6 +23,10 @@ import floris.tools as wfct
 # the underlying classes
 fi = wfct.floris_interface.FlorisInterface("../example_input.json")
 
+# fi.reinitialize_flow_field(layout_array=[[0.0,630.0,1260.0,0.0,630.0,1260.0],[0.0,0.0,0.0,378.0,378.0,378.0]])
+# fi.reinitialize_flow_field(layout_array=[[0.0,378.0,756.0,0.0,378.0,756.0],[0.0,0.0,0.0,378.0,378.0,378.0]])
+# fi.reinitialize_flow_field(layout_array=[[0.0,882.0,1764.0,0.0,882.0,1764.0],[0.0,0.0,0.0,378.0,378.0,378.0]])
+
 # Calculate wake
 fi.calculate_wake()
 
@@ -32,4 +36,5 @@ hor_plane = fi.get_hor_plane()
 # Plot and show
 fig, ax = plt.subplots()
 wfct.visualization.visualize_cut_plane(hor_plane, ax=ax)
+# wfct.visualization.plot_turbines_with_fi(ax,fi)
 plt.show()

@@ -86,6 +86,7 @@ for s in range(len(sep)):
 
     for i in range(len(nIter)):
         Ind_Opts['nIter'] = nIter[i]
+        fi.IndOpts = Ind_Opts
         # print('Number of iterations:', Ind_Opts['nIter'])
 
         # Calculate wake and get horizontal plane at turbine height for original farm field
@@ -132,16 +133,16 @@ if IterPlots:
     def iterationplot(df_list,sep,ylabel):
         # Plots the convergence for each turbine variable for each separtion
         # Plots the normalized variable for each turbine in the field as a function of the number of iterations
-        fig,axs = plt.subplots(1, len(sep), sharey=True, sharex=True, figsize=(12.0,6.0))
+        fig,axs = plt.subplots(1, len(sep), sharey=True, sharex=True, figsize=(12.0,5.0))
         for i in range(len(sep)):
             if len(sep) == 1:
                 ax = axs
                 ax.set_ylabel(ylabel)
             else:
                 ax = axs[i]
-                axs[0].set_ylabel(ylabel)
+                axs[0].set_ylabel(ylabel,fontsize=14)
             ax.plot(normalize(df_list[0]))
-            ax.set_title('%dD Separation' %sep[i])
+            ax.set_title('%dD Separation' %sep[i], fontsize=16)
             ax.yaxis.set_major_formatter(ticker.ScalarFormatter(useOffset=False))
             ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
             
@@ -150,8 +151,9 @@ if IterPlots:
             else:
                 axs[len(sep)-1].legend(df_list[0].columns, loc="lower right") # TODO find better location for legend
         
-        fig.suptitle('Normalized Iteration Plot For %dx%d Layout' %(m,n))
-        fig.text(0.5,0.04,'Iterations', ha='center')
+        fig.suptitle('Normalized Iteration Plot For %dx%d Layout' %(m,n), fontsize=22)
+        fig.text(0.5,0.04,'Iterations', ha='center',fontsize=14)
+        fig.tight_layout(rect=[0,0.05,1,0.94])
 
     iterationplot(power_df,sep,'Normalized Power')
     iterationplot(velocity_df,sep,'Normalized Velocity')

@@ -70,12 +70,13 @@ for i,(ax,p,t) in enumerate(zip(axes.flat,planes,titles)):
             nStreamlines=nStreamlines,levelsLines=levelsLines, axial=True, colors='k')
     ax.title.set_text(t)
     #wfct.visualization.plot_turbines_with_fi(ax,fi)
-    ax.set_ylabel('r/D [-]')
-    ax.title.set_text(t)
+    ax.set_ylabel('r/D [-]',fontsize=18)
+    # ax.title.set_text(t)
+    ax.set_title(t, fontsize=24)
     ax.tick_params(direction='in')
 
     if i==1:
-        ax.set_xlabel('x/D [-]')
+        ax.set_xlabel('x/D [-]',fontsize=18)
 
 ax.set_xlim([-4,14])
 ax.set_ylim([-2,2])
@@ -89,5 +90,7 @@ if bColorBar:
     cbar.ax.tick_params(axis='both', direction='in',length=18,color=(0.5,0.5,0.5))
 else:
     fig.subplots_adjust(left=0.035, right=0.990, top=0.96, bottom=0.08,hspace=0.17)
+
+fig.tight_layout()
 
 plt.show()

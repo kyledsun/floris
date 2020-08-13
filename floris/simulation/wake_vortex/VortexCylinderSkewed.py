@@ -47,6 +47,7 @@ def svc_tang_u_polar(vr,vpsi,vz,gamma_t=-1,R=1,m=0,ntheta=180,polar_out=False):
        m =tan(chi): tangent of wake skew angle
        ntheta    : number of points used for integration
     Reference: [1,2]"""
+    # m = 0
     EPSILON_AXIS=1e-7; # relative threshold for using axis formula
     vtheta = np.pi/2 + np.linspace(0, 2*np.pi, ntheta)
     # Flattening

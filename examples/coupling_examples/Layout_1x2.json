@@ -52,6 +52,7 @@
       "name": "nrel_5mw",
       "description": "NREL 5MW",
       "properties": {
+        "use_points_on_perimeter": false,
         "rotor_diameter": 126.0,
         "hub_height": 90.0,
         "blade_count": 3,
@@ -106,15 +107,15 @@
               "ka": 0.38,
               "kb": 0.004,
               "eps_gain": 0.2,
-              "calculate_VW_velocities": true,
-              "use_yaw_added_recovery": true
+              "calculate_VW_velocities": false,
+              "use_yaw_added_recovery": false
             }
           },
           "wake_deflection_parameters": {
             "gauss": {
               "dm": 1.0,
               "eps_gain": 0.2,
-              "use_secondary_steering":true
+              "use_secondary_steering":false
             }
           },
           "wake_turbulence_parameters": {

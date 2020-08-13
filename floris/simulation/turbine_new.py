@@ -383,6 +383,8 @@ Returns:
         # Vortex wind turbine
         print('>>> turbine.py : set yaw VC_WT') 
         self.yaw_pos = yaw_angle * np.pi/180 # Convert from degrees to radians
+        # print('Yaw Angle',yaw_angle)
+        # print('Yaw_pos',self.yaw_pos)
 
         # Transformation matrix for rotating vector around yaw angle
         c,s=np.cos(self.yaw_pos),np.sin(self.yaw_pos)
@@ -411,6 +413,9 @@ Returns:
         if Ind_Opts['induction']: # Can remove (won't be called unless induction)
             # update vortex cylinder velocity and loading
             r_bar_cut = 0.01
+            # r_bar_cut = 0.11
+            # r_bar_tip = 0.9
+            # print("------Ct:", self.Ct)
             if CT0 is None:
                 CT0       = self.Ct
             # print('CT0: ', CT0)
@@ -419,6 +424,7 @@ Returns:
             Lambda    = 30 # if >20 then no swirl
             vr_bar    = np.linspace(0,1.0,100)
             Ct_AD     = Ct_const_cutoff(CT0,r_bar_cut,vr_bar) # TODO change me to distributed
+            # Ct_AD     = Ct_const_cutoff(CT0,r_bar_cut,vr_bar,r_bar_tip) # TODO change me to distributed
             gamma_t_Ct = None
             self.update_loading(r=vr_bar*self.R, VC_Ct=Ct_AD, Lambda=Lambda, nCyl=nCyl, gamma_t_Ct=gamma_t_Ct)
             self.gamma_t= self.gamma_t*Ind_Opts['GammaFact']
@@ -534,9 +540,15 @@ Returns:
         Xc,Yc,Zc = transform_T(T_c2g, Xg,Yg,Zg)
         # Detecting whether our vertical convention match, and define chi
         e_vert_c = np.dot(T_c2g.T , self.e_vert_g)
-        if self.chi is None:
-            # TODO TODO chi needs induction effect!
-            self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos)
+        # if self.chi is None:
+        #     # TODO TODO chi needs induction effect!
+        #     self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos)
+        
+        # TODO TODO chi needs induction effect!
+        self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos)
+        # self.chi = self.chi*1.5
+        # print('Chi: ', self.chi)
+
         if self.gamma_t is None:
             raise Exception('Please set loading with `update_loading` before calling `compute_u`')
 
@@ -575,6 +587,7 @@ Returns:
                     if np.abs(self.chi)>1e-7:
                         if Model =='VC':
                             uxc0,uyc0,uzc0 = svc_tang_u(Xc0,Y,Zc0,gamma_t=self.gamma_t,R=self.R,m=m,polar_out=False)
+                            print('-----------------Vortex Cylinder Skewed Model------------------')
                         else:
                             raise NotImplementedError('Model '+Model + ', with yaw.')
                     else:
@@ -638,24 +651,39 @@ Returns:
                     uzc += uzc0
             else:
                 raise NotImplementedError('Model'+Model, 'with multiple cylinders')
-        if no_wake:
-#             uxc[:]=0
-#             uyc[:]=0
-#             uzc[:]=1
-            # Zero wake induction
-            bDownStream=Zc0>=-0.20*self.R
-#             bDownStream=Zc0>=0
-            Rc = np.sqrt(Xc0**2 + Yc0**2)
-            bRotorTube = Rc<self.R*1.001 # we give a margin since VD and VC have fields very dissimilar at R+/-eps
-            bSelZero = np.logical_and(bRotorTube,bDownStream)
-            uxc[bSelZero]=0
-            uyc[bSelZero]=0
-            uzc[bSelZero]=0
+#         if no_wake:
+# #             uxc[:]=0
+# #             uyc[:]=0
+# #             uzc[:]=1
+#             # Zero wake induction
+#             bDownStream=Zc0>=-0.20*self.R
+# #             bDownStream=Zc0>=0
+#             Rc = np.sqrt(Xc0**2 + Yc0**2)
+#             bRotorTube = Rc<self.R*1.001 # we give a margin since VD and VC have fields very dissimilar at R+/-eps
+#             bSelZero = np.logical_and(bRotorTube,bDownStream)
+#             uxc[bSelZero]=0
+#             uyc[bSelZero]=0
+#             uzc[bSelZero]=0
 
         # Transform back to global
         uxg = T_c2g[0,0]*uxc+T_c2g[0,1]*uyc+T_c2g[0,2]*uzc
         uyg = T_c2g[1,0]*uxc+T_c2g[1,1]*uyc+T_c2g[1,2]*uzc
         uzg = T_c2g[2,0]*uxc+T_c2g[2,1]*uyc+T_c2g[2,2]*uzc
+
+        if no_wake:
+            # Zero wake induction
+            # Remove wake downstream of turbine (include small region in front of turbine to ensure induction does not affect free stream velocity)
+            bDownStream=Xg>=(Yg-self.r_hub[1])*np.tan(-self.yaw_pos)-0.20*self.R+self.r_hub[0]
+            # Only remove wake if within vortex cylinder radius
+            # Rc = np.sqrt((Yg-self.r_hub[1])**2 + (Zg-self.hub_height)**2)
+            vortex_vector = np.sqrt((-(Zg-self.r_hub[2]))**2+((Yg-self.r_hub[1])-(Xg-self.r_hub[0])*np.tan(self.chi+self.yaw_pos))**2) 
+            Rc = vortex_vector/np.linalg.norm(np.array([1,np.tan(self.chi+self.yaw_pos),0]))
+            bRotorTube = Rc<self.R*1.001 # we give a margin since VD and VC have fields very dissimilar at R+/-eps
+            # Check if point is both downstream and within vortex cylinder radius
+            bSelZero = np.logical_and(bRotorTube,bDownStream)
+            uxg[bSelZero]=0
+            uyg[bSelZero]=0
+            uzg[bSelZero]=0
 
         # Add free stream if requested
         if not only_ind:

@@ -309,7 +309,7 @@ class FlorisInterface(LoggerBase):
             )
 
         # If x1 and x2 bounds are not provided, use rules of thumb
-        if normal_vector == "z":  # Rules of thumb for horizontal plane
+        if normal_vector == "z" or normal_vector == "y":  # Rules of thumb for horizontal plane
             if x1_bounds is None:
                 coords = self.floris.farm.flow_field.turbine_map.coords
                 max_diameter = self.floris.farm.flow_field.max_diameter
@@ -347,6 +347,8 @@ class FlorisInterface(LoggerBase):
             points = np.row_stack((x1_array, x2_array, x3_array))
         if normal_vector == "x":
             points = np.row_stack((x3_array, x1_array, x2_array))
+        if normal_vector == "y":
+            points = np.row_stack((x1_array, x3_array, x2_array))
 
         if Ind_Opts is None:
             Ind_Opts = self.IndOpts

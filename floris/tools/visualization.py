@@ -118,7 +118,8 @@ def line_contour_cut_plane(cut_plane, ax=None, levels=None, colors=None, **kwarg
 
 
 def visualize_cut_plane(
-    cut_plane, ax=None, minSpeed=None, maxSpeed=None, cmap="coolwarm", levels=None
+    cut_plane, ax=None, minSpeed=None, maxSpeed=None, cmap="coolwarm", levels=None,
+    fig = None, cbar = False
 ):
     """
     Generate pseudocolor mesh plot of the cut_plane.
@@ -134,6 +135,12 @@ def visualize_cut_plane(
             contours. Defaults to None.
         cmap (str, optional): Colormap specifier. Defaults to
             'coolwarm'.
+        levels (array, optional): Array of contour values to velocity
+            contours.
+        fig (:py:class:`matplotlib.pyplot.fig`): Figure. Defaults to
+            None.
+        cbar (bool, optional): When *True*, plots velocity colorbar.
+            Defaults to *False*. Requires that fig be read in if *True*.
 
     Returns:
         im (:py:class:`matplotlib.plt.pcolormesh`): Image handle.
@@ -143,8 +150,10 @@ def visualize_cut_plane(
         fig, ax = plt.subplots()
     if minSpeed is None:
         minSpeed = cut_plane.df.u.min()
+        # print('minSpeed: ', minSpeed)
     if maxSpeed is None:
         maxSpeed = cut_plane.df.u.max()
+        # print('maxSpeed: ', maxSpeed)
 
     # Reshape to 2d for plotting
     x1_mesh = cut_plane.df.x1.values.reshape(
@@ -160,6 +169,10 @@ def visualize_cut_plane(
 
     # Plot the cut-through
     im = ax.pcolormesh(x1_mesh, x2_mesh, Zm, cmap=cmap, vmin=minSpeed, vmax=maxSpeed)
+
+    # Plot colorbars for velocity (Requires that fig be read in)
+    if cbar:
+        fig.colorbar(im,ax=ax)
 
     # Add line contour
     line_contour_cut_plane(

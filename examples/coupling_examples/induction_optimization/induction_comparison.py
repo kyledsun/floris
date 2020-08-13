@@ -54,7 +54,7 @@ hor_plane = fi.get_hor_plane(x_resolution=400, y_resolution=100, y_bounds=[-500,
 
 # Plot and show
 fig, axs = plt.subplots(nrows = 2, ncols=1)
-wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0])
+wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0], minSpeed=4, maxSpeed=8.5)
 axs[0].set_title("No Induction")
 
 base_power = fi.get_farm_power()
@@ -85,7 +85,7 @@ fi_ind.calculate_wake(yaw_angles=yaw_ind_angles)
 hor_plane = fi_ind.get_hor_plane(x_resolution=400, y_resolution=100, y_bounds=[-500,500])
 
 # Plot and show
-wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[1])
+wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[1], minSpeed=4, maxSpeed=8.5)
 axs[1].set_title("With Blockage Effect")
 
 ind_power = fi_ind.get_farm_power()
