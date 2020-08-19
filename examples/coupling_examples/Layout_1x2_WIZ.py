@@ -37,7 +37,7 @@ bounds=[-4*D,14*D,-2*D-10,2*D+10,89,90] # xmin xmax .. zmin zmax
 
 titles=[]
 titles.append('FLORIS (original)')
-titles.append('FLORIS (with induction)')
+titles.append('FLORIS (with blockage)')
 # titles.append('With induction and blending')
 
 # --- Parametric computation
@@ -67,7 +67,7 @@ for i,(ax,p,t) in enumerate(zip(axes.flat,planes,titles)):
     u=p[2]
     v=p[3]
     im = plotPlane(x/D,y/D,u,v,ax,minSpeed=minSpeed,maxSpeed=maxSpeed,
-            nStreamlines=nStreamlines,levelsLines=levelsLines, axial=True, colors='k')
+            nStreamlines=nStreamlines,levelsLines=levelsLines, axial=True, colors='black')
     ax.title.set_text(t)
     #wfct.visualization.plot_turbines_with_fi(ax,fi)
     ax.set_ylabel('r/D [-]',fontsize=18)
@@ -78,7 +78,7 @@ for i,(ax,p,t) in enumerate(zip(axes.flat,planes,titles)):
     if i==1:
         ax.set_xlabel('x/D [-]',fontsize=18)
 
-ax.set_xlim([-4,14])
+ax.set_xlim([-3,10])
 ax.set_ylim([-2,2])
 
 if bColorBar:

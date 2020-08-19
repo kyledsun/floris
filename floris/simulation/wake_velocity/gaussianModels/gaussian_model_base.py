@@ -356,6 +356,12 @@ class GaussianModel(VelocityDeficit):
         W[x_locations < coord.x1 + 10] = 0.0
         W[W < 0] = 0
 
+        V[y_locations > coord.x2 + turbine.rotor_diameter/2] = 0.0
+        V[y_locations < coord.x2 - turbine.rotor_diameter/2] = 0.0
+ 
+        W[z_locations > coord.x3 + turbine.rotor_diameter/2] = 0.0
+        W[z_locations < coord.x3 - turbine.rotor_diameter/2] = 0.0
+
         return V, W
 
     @property

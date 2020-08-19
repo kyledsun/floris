@@ -22,7 +22,8 @@ specified wind farm.
 # --- Plot options
 Induction = True # Include induction
 horPlot = True # Plots horizontal cuts of wind farms for each wind farm layout
-IterPlots = True # Plots powers as a function of iteration plots
+IterPlots = True # Plots powers ,velocities and Ct values as a function of iteration
+TurbineIterPlots = False # Plots turbine power power,velocity, and Ct values individually per iteration
 ReadOuts = False # Prints dataframes of turbine powers as a function of iterations used
 
 # --- Resolution Parameters
@@ -137,28 +138,29 @@ if IterPlots:
         for i in range(len(sep)):
             if len(sep) == 1:
                 ax = axs
-                ax.set_ylabel(ylabel)
+                ax.set_ylabel(ylabel,fontsize=16)
             else:
                 ax = axs[i]
-                axs[0].set_ylabel(ylabel,fontsize=14)
+                axs[0].set_ylabel(ylabel,fontsize=16)
             ax.plot(normalize(df_list[0]))
             ax.set_title('%dD Separation' %sep[i], fontsize=16)
             ax.yaxis.set_major_formatter(ticker.ScalarFormatter(useOffset=False))
             ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
             
             if len(sep) == 1:
-                ax.legend(df_list[0].columns, loc="lower right") # TODO find better location for legend
+                ax.legend(df_list[0].columns, loc="lower right", fontsize=13) # TODO find better location for legend
             else:
-                axs[len(sep)-1].legend(df_list[0].columns, loc="lower right") # TODO find better location for legend
+                axs[len(sep)-1].legend(df_list[0].columns, loc="lower right",fontsize=13) # TODO find better location for legend
         
-        fig.suptitle('Normalized Iteration Plot For %dx%d Layout' %(m,n), fontsize=22)
-        fig.text(0.5,0.04,'Iterations', ha='center',fontsize=14)
+        fig.suptitle('Normalized Iteration Plot For %dx%d Layout' %(m,n), fontsize=24)
+        fig.text(0.5,0.04,'Iterations', ha='center',fontsize=16)
         fig.tight_layout(rect=[0,0.05,1,0.94])
 
     iterationplot(power_df,sep,'Normalized Power')
     iterationplot(velocity_df,sep,'Normalized Velocity')
     iterationplot(ct_df,sep,'Normalized Ct')
-
+    
+if TurbineIterPlots:
     def turbineiteration(df_list,sep,ylabel):
         # Plots the convergence for each turbine separtion simulation
         # Plots the normalized variable for each turbine in the field as a function of the number of iterations

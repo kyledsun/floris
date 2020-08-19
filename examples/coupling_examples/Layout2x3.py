@@ -9,6 +9,9 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from floris.tools.optimization.scipy.yaw import YawOptimization
 import floris.tools as wfct
 from floris.utilities import Vec3
+import time
+
+tstart = time.time()
 
 """
 Compares the power outputs and velocities seen by each turbine in a 2x3 wind farm for
@@ -43,7 +46,6 @@ for i in range(m):
 # Reinitialize flow field with new specified layout
 fi.reinitialize_flow_field(layout_array=[layout_x,layout_y])
 
-D = fi.floris.farm.turbines[0].rotor_diameter
 bounds=[-4*D,16*D,-2*D-10,5*D+10,89,90] # xmin xmax .. zmin zmax
 
 # Make a copy for optimization instance
@@ -54,6 +56,7 @@ Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 
 Ind_Opts['induction'] = True
 Ind_Opts['Model'] = 'VC'
+Ind_Opts['nIter'] = 2
 
 fi.IndOpts = Ind_Opts
 fi_opt.IndOpts = Ind_Opts
@@ -113,11 +116,13 @@ maxspeed = 8.2
 fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True, figsize=(12.0, 6.0))
 wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0], minSpeed=minspeed, maxSpeed=maxspeed)
 wfct.visualization.plot_turbines_with_fi(axs[0],fi)
-axs[0].set_title("Baseline Case for U = 8 m/s, Wind Direction = 270$^\circ$")
+axs[0].set_title("Baseline Case", fontsize=16)
+# axs[0].set_xlim(right = 2000)
 
-wfct.visualization.visualize_cut_plane(hor_plane_opt, ax=axs[1], minSpeed=minspeed, maxSpeed=maxspeed)
+wfct.visualization.visualize_cut_plane(hor_plane_opt, ax=axs[1], minSpeed=minspeed, maxSpeed=maxspeed,fig=fig,cbar=True)
 wfct.visualization.plot_turbines_with_fi(axs[1],fi_opt)
-axs[1].set_title("Optimized Case for U = 8 m/s, Wind Direction = 270$^\circ$")
+axs[1].set_title("Optimized Case", fontsize=16)
+# axs[1].set_xlim(right = 2000)
 
 print("==========================================")
 print("Induction: ", Ind_Opts['induction'])
@@ -157,5 +162,7 @@ for turbine in fi_opt.floris.farm.turbine_map.turbines:
 
 for i in range(len(turbine_vel)):
     print('Turbine %d: \t%.2f\t\t%.2f' %(i,turbine_vel[i],optTurbine_vel[i]))
+
+print(time.strftime("%H:%M:%S", time.gmtime(time.time()-tstart)))
 
 plt.show()

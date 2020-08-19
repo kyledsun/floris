@@ -36,6 +36,12 @@ for i in range(m):
 # Reinitialize flow field with new specified layout
 fi.reinitialize_flow_field(layout_array=[layout_x,layout_y])
 
+# Make a copy for floris interface with induction
+fi_ind = copy.deepcopy(fi)
+
+# Calculate wake and get horizontal plane at turbine height for original farm field
+fi.calculate_wake()
+
 # Set bounds for allowable wake steering
 min_yaw = 0.0
 max_yaw = 25.0
@@ -50,7 +56,7 @@ yaw_angles = yaw_opt.optimize()
 fi.calculate_wake(yaw_angles=yaw_angles)
 
 # Initialize the horizontal cut
-hor_plane = fi.get_hor_plane(x_resolution=400, y_resolution=100, y_bounds=[-500,500])
+hor_plane = fi.get_hor_plane(x_resolution=400, y_resolution=100)
 
 # Plot and show
 fig, axs = plt.subplots(nrows = 2, ncols=1)
@@ -61,16 +67,16 @@ base_power = fi.get_farm_power()
 # =============================================================================
 # Induction
 # =============================================================================
-
-# Make a copy for floris interface with induction
-fi_ind = copy.deepcopy(fi)
-
 # Read in induction options from flow field class
 Ind_Opts = fi_ind.floris.farm.flow_field.Ind_Opts
 
 # Sets induction to true
 Ind_Opts['induction'] = True
-fi_ind.floris.farm.flow_field.Ind_Opts = Ind_Opts
+Ind_Opts['Model'] = 'VC'
+# fi_ind.floris.farm.flow_field.Ind_Opts = Ind_Opts
+fi_ind.IndOpts = Ind_Opts
+
+fi_ind.calculate_wake()
 
 # Instantiate the Optimization object
 yaw_ind_opt = YawOptimization(fi_ind, minimum_yaw_angle=min_yaw, maximum_yaw_angle=max_yaw)
@@ -82,7 +88,7 @@ yaw_ind_angles = yaw_ind_opt.optimize()
 fi_ind.calculate_wake(yaw_angles=yaw_ind_angles)
 
 # Initialize the horizontal cut
-hor_plane = fi_ind.get_hor_plane(x_resolution=400, y_resolution=100, y_bounds=[-500,500])
+hor_plane = fi_ind.get_hor_plane(x_resolution=400, y_resolution=100)
 
 # Plot and show
 wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[1], minSpeed=4, maxSpeed=8.5)
@@ -131,5 +137,20 @@ print('\t\tNo Induction\tInduction\tDifference')
 print("----------------------------------------------------------------")
 for i in range(len(yaw_angles)):
     print("Turbine %d:\t%.2f\t\t%.2f\t\t%.2f" %(i,yaw_angles[i],yaw_ind_angles[i],(yaw_ind_angles[i]-yaw_angles[i])))
+
+fig,ax = plt.subplots()
+x = np.arange(len(yaw_angles))
+ax.scatter(x,yaw_angles,zorder=3)
+ax.scatter(x,yaw_ind_angles,marker='s',zorder=2)
+ax.plot(x,yaw_angles,zorder=1)
+ax.plot(x,yaw_ind_angles,zorder=1)
+ax.set_xticks(x)
+ax.set_xticklabels(['T'+str(i) for i in x],fontsize=14)
+ax.tick_params(axis='y',labelsize=14)
+ax.set_ylabel('Yaw Angles (deg)',fontsize=16)
+ax.set_xlabel('Turbine',fontsize=16)
+ax.legend(['Baseline','FLORIS w/ Blockage'],fontsize=14)
+fig.suptitle('%dx%d Yaw Optimized Turbine Yaw Angles' %(m,n),fontsize=20)
+fig.tight_layout(rect=(0,0,1,0.93))
 
 plt.show()

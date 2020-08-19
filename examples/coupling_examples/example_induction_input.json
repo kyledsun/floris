@@ -19,7 +19,7 @@
       "description": "Example 1x2 Wind Farm",
       "properties": {
         "wind_speed": [
-          10.0
+          6.0
         ],
         "wind_direction": [
           270.0
@@ -84,7 +84,7 @@
             24.0 , 24.5, 25.0 , 25.5]
         },
         "blade_pitch": 0.0,
-        "yaw_angle": 30.0,
+        "yaw_angle": 0.0,
         "tilt_angle": 0.0,
         "TSR": 8.0
       }

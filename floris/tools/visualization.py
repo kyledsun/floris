@@ -16,6 +16,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from ..utilities import Vec3
 
@@ -172,11 +173,15 @@ def visualize_cut_plane(
 
     # Plot colorbars for velocity (Requires that fig be read in)
     if cbar:
-        fig.colorbar(im,ax=ax)
+        # cb = fig.colorbar(im, ax=ax, fraction = 0.024, pad = 0.04)
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right",size='2%',pad = 0.07)
+        cb = fig.colorbar(im, cax=cax)
+        # cb.ax.tick_params(labelsize='large')
 
     # Add line contour
     line_contour_cut_plane(
-        cut_plane, ax=ax, levels=levels, colors="g", linewidths=0.8, alpha=0.3
+        cut_plane, ax=ax, levels=levels, colors="w", linewidths=0.8, alpha=0.3
     )
 
     # Make equal axis

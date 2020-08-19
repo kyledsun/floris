@@ -381,7 +381,7 @@ Returns:
         self._yaw_angle = yaw_angle
 
         # Vortex wind turbine
-        print('>>> turbine.py : set yaw VC_WT') 
+        # print('>>> turbine.py : set yaw VC_WT') 
         self.yaw_pos = yaw_angle * np.pi/180 # Convert from degrees to radians
         # print('Yaw Angle',yaw_angle)
         # print('Yaw_pos',self.yaw_pos)
@@ -410,6 +410,8 @@ Returns:
             rotated_z (np.array): The z-coordinates of the flow field grid
                 rotated so the new x axis is aligned with the wind direction.
         """
+        self.Ind_Opts = Ind_Opts
+
         if Ind_Opts['induction']: # Can remove (won't be called unless induction)
             if Ind_Opts['Ct_test']:
                 print('Ct-test')

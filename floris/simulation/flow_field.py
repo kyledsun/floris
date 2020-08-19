@@ -937,6 +937,7 @@ class FlowField:
             print('Avg Power per WT:',PowerTot/nWT/1000)
             self.u_induct = u_ind
             self.v_induct = v_ind
+            self.w_induct = w_ind
             u_wake = (u_wake - u_ind)
             v_wake = (v_wake + v_ind)
             w_wake = (w_wake + w_ind)
@@ -975,6 +976,7 @@ class FlowField:
 
                 self.u_induct = u_ind
                 self.v_induct = v_ind
+                self.w_induct = w_ind
                 u_wake = (u_wake - u_ind)
                 v_wake = (v_wake + v_ind)
                 w_wake = (w_wake + w_ind)

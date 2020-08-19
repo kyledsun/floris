@@ -23,8 +23,8 @@ resolution=Vec3(nx, ny, 2)
 
 minSpeed = 0.5
 maxSpeed = 1.05
-contoursf = np.sort([0.2,0.5,0.6,0.7,0.8,0.9,0.95,0.98,0.99,1,1.01,1.4])
-contours = np.sort([1.01,0.99,0.98,0.95,0.9,0.8,0.7,0.6,0.5])
+contoursf = np.sort([0.2,0.5,0.6,0.7,0.8,0.9,0.95,0.98,0.99,1,1.01,1.4]) # Contour fill values
+contours = np.sort([1.01,0.99,0.98,0.95,0.9,0.8,0.7,0.6,0.5]) # Countour lines
 
 # Initialize floris interface object
 fi = wfct.floris_interface.FlorisInterface(input_file)
@@ -41,27 +41,30 @@ fi.floris.farm.flow_field.set_ct([0.95])
 
 D= 130
 fi.floris.farm.turbines[0].rotor_diameter = D
+
+# Calculate wake
+fi.calculate_wake(yaw_angles=[30],Ind_Opts=Ind_Opts)
+
 bounds=[-5*D/2,3*D/2,-2*D/2,2*D/2,89,90] # xmin xmax .. zmin zmax
 U0 = fi.floris.farm.initwind[0]
 yaw = fi.floris.farm.turbines[0].yaw_pos
-
-# Calculate wake
-fi.calculate_wake(Ind_Opts=Ind_Opts)
 
 # Initialize the horizontal cut
 hor_plane = fi.get_hor_plane(x_resolution = resolution.x1, y_resolution = resolution.x2, x_bounds = tuple(bounds[0:2]), y_bounds = tuple(bounds[2:4]))
 
 hor_plane2 = copy.deepcopy(hor_plane)
 # print(hor_plane2.df.head())
-# hor_plane2.df.u = (hor_plane2.df.u_ind+U0) / U0
-hor_plane2.df.u = hor_plane2.df.v_ind
-# hor_plane2.df.u = np.sqrt(((hor_plane2.df.u_ind+U0)*np.cos(yaw))**2)/U0*np.cos(yaw)
-# hor_plane2.df.u = ( (hor_plane2.df.u_ind + U0)*np.cos(yaw) + (hor_plane2.df.v_ind)*np.sin(yaw) ) /U0*np.cos(yaw)
-# hor_plane2.df.u = np.sqrt(((hor_plane2.df.u_ind+U0)*np.cos(yaw) + (hor_plane2.df.v_ind)*np.sin(yaw))**2)/U0*np.cos(yaw)
-# hor_plane2.df.u = np.ma.masked_where(np.isnan(hor_plane2.df.u), hor_plane2.df.u)
 
-print("Max Value:", max((hor_plane2.df.u_ind+U0)*np.cos(yaw)))
-print("Rotated U0: ", U0*np.cos(yaw))
+### Set induction velocity to u for visualization
+# Normalized streamwise induction with free stream
+# hor_plane2.df.u = (hor_plane2.df.u_ind+U0) / U0
+# Span wise induction (V direction)
+# hor_plane2.df.u = hor_plane2.df.v_ind
+# Normalized streamwise induction with free stream rotated in the direction normal to the rotor plane
+# hor_plane2.df.u = np.sqrt(((hor_plane2.df.u_ind+U0)*np.cos(yaw))**2)/(U0*np.cos(yaw))
+# Normalized streamwise induction, free stream and spanwise induction rotated in the direction normal to the rotor plane
+hor_plane2.df.u = ((hor_plane2.df.u_ind + U0)*np.cos(yaw) + (hor_plane2.df.v_ind)*np.sin(yaw)) /(U0*np.cos(yaw))
+# hor_plane2.df.u = np.sqrt(((hor_plane2.df.u_ind+U0)*np.cos(yaw) + (hor_plane2.df.v_ind)*np.sin(yaw))**2)/(U0*np.cos(yaw))
 
 # print(hor_plane2.df.head())
 # ===============================================================================================
@@ -71,7 +74,9 @@ fig, ax = plt.subplots()
 # Plot induction
 wfct.visualization.visualize_cut_plane(hor_plane2, ax=ax, levels = contours,fig=fig,cbar=True)
 wfct.visualization.plot_turbines_with_fi(ax,fi)
-ax.set_title('Induction Only')
+ax.set_title('Vortex Cylinder Velocity Field', fontsize = 16)
+ax.set_xlabel('x [-]', fontsize = 14)
+ax.set_ylabel('y [-]', fontsize = 14)
 
 # ===============================================================================================
 # Emmanuel Plot Formatting
@@ -156,9 +161,11 @@ cs = ax.contour(
     levels = contours, colors = 'k', linewidths = 0.8, alpha = 1.0, linestyles = 'solid')
 
 wfct.visualization.plot_turbines_with_fi(ax,fi)
-cb=fig.colorbar(im)
-ax.set_xlabel('x [-]')
-ax.set_ylabel('y [-]')
+cb=fig.colorbar(im, fraction = 0.024, pad = 0.04)
+cb.ax.tick_params(labelsize='large')
+ax.set_title('Vortex Cylinder Velocity Field', fontsize = 22)
+ax.set_xlabel('x [-]', fontsize = 18)
+ax.set_ylabel('y [-]', fontsize = 18)
 ax.set_aspect('equal')
 
 print('gamma_t: ', fi.floris.farm.turbines[0].gamma_t[0])

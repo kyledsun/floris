@@ -368,9 +368,11 @@ class FlorisInterface(LoggerBase):
         if Ind_Opts['induction']:
             u_ind_flat = flow_field.u_induct.flatten()
             v_ind_flat = flow_field.v_induct.flatten()
+            w_ind_flat = flow_field.w_induct.flatten()
         else: 
             u_ind_flat = np.zeros(np.shape(u_flat))
             v_ind_flat = np.zeros(np.shape(u_flat))
+            w_ind_flat = np.zeros(np.shape(u_flat))
 
         # Create a df of these
         if normal_vector == "z":
@@ -383,7 +385,8 @@ class FlorisInterface(LoggerBase):
                     "v": v_flat,
                     "w": w_flat,
                     "u_ind": u_ind_flat,
-                    "v_ind": v_ind_flat
+                    "v_ind": v_ind_flat,
+                    "w_ind": w_ind_flat
                 }
             )
         if normal_vector == "x":
@@ -396,7 +399,8 @@ class FlorisInterface(LoggerBase):
                     "v": v_flat,
                     "w": w_flat,
                     "u_ind": u_ind_flat,
-                    "v_ind": v_ind_flat
+                    "v_ind": v_ind_flat,
+                    "w_ind": w_ind_flat
                 }
             )
         if normal_vector == "y":
@@ -409,7 +413,8 @@ class FlorisInterface(LoggerBase):
                     "v": v_flat,
                     "w": w_flat,
                     "u_ind": u_ind_flat,
-                    "v_ind": v_ind_flat
+                    "v_ind": v_ind_flat,
+                    "w_ind": w_ind_flat
                 }
             )
 

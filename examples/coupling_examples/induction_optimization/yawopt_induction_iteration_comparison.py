@@ -14,7 +14,7 @@ from floris.utilities import Vec3
 Tests the difference in yaw optimized angles between varying instances of induction calculation iterations
 """
 
-itertest = [1,2] # will run tests using each iteration (only accepts length of two)
+itertest = [2,4] # will run tests using each iteration (only accepts length of two)
 
 input_file="../OptLayout_2x3.json"
 # Initialize the floris interface
@@ -23,6 +23,7 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 # Sets induction to true
 Ind_Opts['induction'] = True
+Ind_Opts['Model'] = 'VC'
 Ind_Opts['nIter'] = itertest[0]
 
 fi.floris.farm.flow_field.Ind_Opts = Ind_Opts
@@ -32,8 +33,8 @@ print('%d Iterations Ind Opts: ' %itertest[0], fi.floris.farm.flow_field.Ind_Opt
 sep = 5 # streamwise separation for turbines (*D)
 sepy = 3 # spanwise spearation between turbines (*D)
 # Creates a turbine field with n rows and m columns
-n = 3
-m = 2
+n = 5
+m = 3
 
 D = fi.floris.farm.turbines[0].rotor_diameter
 layout_x = []
