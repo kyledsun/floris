@@ -458,7 +458,7 @@ Returns:
                 longi = False
                 tang  = True
                 # print('.',end='')
-                ux,uy,uz = self.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=True, Decay = True, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
+                ux,uy,uz = self.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=True, Decay=True, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
 
         return ux,uy,uz
 
@@ -706,9 +706,9 @@ Returns:
             bDownStream=Xg>=(Yg-self.r_hub[1])*np.tan(-self.yaw_pos)-0.20*self.R+self.r_hub[0]
             XDecay = np.ones(uxg.shape)
             # XDecay[bDownStream] = np.exp(-((Xg[bDownStream]-self.r_hub[0])/(self.R*2))**2)
-            XDecay[bDownStream] = np.exp(-((Xg[bDownStream]-self.r_hub[0])/(self.R*2)*self.VC_Ct)**2)
-            # XDecay[bDownStream] = (1-0.02)**(Xg[bDownStream]-self.r_hub[0])
-            # XDecay[bDownStream] = (1-0.02*self.VC_Ct)**(Xg[bDownStream]-self.r_hub[0])
+            # XDecay[bDownStream] = np.exp(-((Xg[bDownStream]-self.r_hub[0])/(self.R*2)*self.VC_Ct)**2)
+            # XDecay[bDownStream] = np.exp(-(((Xg[bDownStream]-self.r_hub[0])*np.cos(-self.yaw_pos)-(Yg[bDownStream]-self.r_hub[1])*np.sin(-self.yaw_pos))/(self.R*2))**2)
+            XDecay[bDownStream] = np.exp(-(((Xg[bDownStream]-self.r_hub[0])*np.cos(-self.yaw_pos)-(Yg[bDownStream]-self.r_hub[1])*np.sin(-self.yaw_pos))/(self.R*2)*self.VC_Ct)**2)
             uxg*=XDecay
             uyg*=XDecay
             uzg*=XDecay

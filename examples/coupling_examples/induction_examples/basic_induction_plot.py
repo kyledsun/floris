@@ -22,7 +22,7 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 sep = 5 # streamwise separation for turbines (*D)
 sepy = 3 # spanwise spearation between turbines (*D)
 # Creates a turbine field with n rows and m columns
-n = 5
+n = 1
 m = 1
 
 D = fi.floris.farm.turbines[0].rotor_diameter
@@ -58,7 +58,7 @@ print("Turbine Powers:")
 print('----------------------------------------------')
 turbpow = fi.get_turbine_power()
 for i in range(len(turbpow)):
-    print('Turbine: ', turbpow[i]/1000)
+    print('Turbine %d: '%i, turbpow[i]/1000)
 print('==============================================')
 
 # Plot and Show

@@ -213,7 +213,7 @@ ax.set_title('Vortex Cylinder Velocity Field', fontsize = 22)
 ax.set_xlabel('x [-]', fontsize = 18)
 ax.set_ylabel('y [-]', fontsize = 18)
 ax.set_aspect('equal')
-# fig.savefig('../../../../../../Documents/Blockage Effect/Induction Velocity Field_2.0/Yawed/'+str(m)+'x'+str(n)+'induction_velocity_countour_yaw.png')
+# fig.savefig('../../../../../../Documents/Blockage Effect/Induction Velocity Field_2.0/Yawed_Decay_Ct_2/'+str(m)+'x'+str(n)+'induction_velocity_countour_yaw.png')
 
 print('gamma_t: ', fi.floris.farm.turbines[0].gamma_t[0])
 print('Time Elapsed: ', (time.time()-tstart))

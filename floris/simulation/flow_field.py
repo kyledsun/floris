@@ -919,6 +919,7 @@ class FlowField:
 
             # Loop through turbines and set Ct values to values calculated from initial calculate induction
             # Recalculate induction field based on new Ct values.
+            # print('Length Sorted_Map: ', len(sorted_map))
             for i,(coord, turbine) in enumerate(sorted_map):
                 print('------------Turbine %d---------------' %i)
                 ux,uy,uz = turbine.compute_induction(Ind_Opts_temp,rotated_x,rotated_y,rotated_z,CT0=self.Ct_list[i])
