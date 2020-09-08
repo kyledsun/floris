@@ -69,10 +69,10 @@ fi_ind.floris.farm.flow_field.Ind_Opts = Ind_Opts
 fi_ind.calculate_wake()
 
 # Initialize the horizontal cut
-hor_plane = fi_ind.get_hor_plane(x_resolution=400, y_resolution=100)
+hor_plane2 = fi_ind.get_hor_plane(x_resolution=400, y_resolution=100)
 
 # Plot and show
-wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[1], fig=fig, cbar=True)
+wfct.visualization.visualize_cut_plane(hor_plane2, ax=axs[1], fig=fig, cbar=True)
 wfct.visualization.plot_turbines_with_fi(axs[1],fi)
 axs[1].set_title("FLORIS with Blockage Effects", fontsize=16)
 fig.tight_layout()
@@ -99,6 +99,12 @@ init_powers = np.array(fi.get_turbine_power())
 opt_powers = np.array(fi_ind.get_turbine_power())
 for i in range(len(init_powers)):
     print('Turbine %d: \t%.2f\t%.2f\t%.2f' %(i, init_powers[i],opt_powers[i],(opt_powers[i] - init_powers[i])))
+
+print("----------------------------------------------------------------")
+print('Relative Power Change with Blockages (%):')
+print("----------------------------------------------------------------")
+for i in range(len(init_powers)):
+    print('Turbine %d: \t%.2f' %(i, ((opt_powers[i] - init_powers[i])/ init_powers[i])*100))
 
 print("================================================================")
 print('Velocities Seen By Each Turbine:')

@@ -691,32 +691,32 @@ class FlowField:
             rx[i], ry[i] = cord.x1prime, cord.x2prime
 
         for coord, turbine in sorted_map:
-                xloc, yloc = np.array(rx == coord.x1), np.array(ry == coord.x2)
-                idx = int(np.where(np.logical_and(yloc, xloc))[0])
+            xloc, yloc = np.array(rx == coord.x1), np.array(ry == coord.x2)
+            idx = int(np.where(np.logical_and(yloc, xloc))[0])
 
-                if np.unique(self.wind_map.grid_wind_direction).size == 1:
-                    # only rotate grid once for homogeneous wind direction
-                    rotated_x, rotated_y = initial_rotated_x, initial_rotated_y
+            if np.unique(self.wind_map.grid_wind_direction).size == 1:
+                # only rotate grid once for homogeneous wind direction
+                rotated_x, rotated_y = initial_rotated_x, initial_rotated_y
 
-                else:
-                    # adjust grid rotation with respect to current turbine for
-                    # heterogeneous wind direction
-                    wd = (
-                        self.wind_map.turbine_wind_direction[idx]
-                        - self.wind_map.grid_wind_direction
-                    )
+            else:
+                # adjust grid rotation with respect to current turbine for
+                # heterogeneous wind direction
+                wd = (
+                    self.wind_map.turbine_wind_direction[idx]
+                    - self.wind_map.grid_wind_direction
+                )
 
-                    # for straight wakes, change rx[idx] to initial_rotated_x
-                    xoffset = center_of_rotation.x1 - rx[idx]
-                    # for straight wakes, change ry[idx] to initial_rotated_y
-                    yoffset = center_of_rotation.x2 - ry[idx]
-                    y_grid_offset = xoffset * sind(wd) + yoffset * cosd(wd) - yoffset
-                    rotated_y = initial_rotated_y - y_grid_offset
+                # for straight wakes, change rx[idx] to initial_rotated_x
+                xoffset = center_of_rotation.x1 - rx[idx]
+                # for straight wakes, change ry[idx] to initial_rotated_y
+                yoffset = center_of_rotation.x2 - ry[idx]
+                y_grid_offset = xoffset * sind(wd) + yoffset * cosd(wd) - yoffset
+                rotated_y = initial_rotated_y - y_grid_offset
 
-                    xoffset = center_of_rotation.x1 - initial_rotated_x
-                    yoffset = center_of_rotation.x2 - initial_rotated_y
-                    x_grid_offset = xoffset * cosd(wd) - yoffset * sind(wd) - xoffset
-                    rotated_x = initial_rotated_x - x_grid_offset
+                xoffset = center_of_rotation.x1 - initial_rotated_x
+                yoffset = center_of_rotation.x2 - initial_rotated_y
+                x_grid_offset = xoffset * cosd(wd) - yoffset * sind(wd) - xoffset
+                rotated_x = initial_rotated_x - x_grid_offset
 
         def compute_wakes(u_wake,v_wake,w_wake,u_ind=None,v_ind=None,w_ind=None):
             self.v = np.zeros(np.shape(self.u))
@@ -727,9 +727,11 @@ class FlowField:
 
             for i, (coord, turbine) in enumerate(sorted_map):
                 
+                # temp_u_wake = copy.deepcopy(u_wake)
                 # update the turbine based on the velocity at its hub
                 turbine.update_velocities(
                     u_wake-u_ind, coord, self, rotated_x, rotated_y, rotated_z
+                    # temp_u_wake-u_ind, coord, self, rotated_x, rotated_y, rotated_z
                 )
 
                 # get the wake deflection field
@@ -898,10 +900,10 @@ class FlowField:
             #print_CT()
         PowerTot=0
         nWT=len(sorted_map)
-        for i, (coord,turbine) in enumerate(sorted_map):
-            print('turbine %d:' %i,turbine.power)
-            PowerTot+=turbine.power
-        print('Avg Power per WT:',PowerTot/nWT/1000)
+        # for i, (coord,turbine) in enumerate(sorted_map):
+        #     # print('turbine %d:' %i,turbine.power)
+        #     PowerTot+=turbine.power
+        # print('Avg Power per WT:',PowerTot/nWT/1000)
 
         if Ind_Opts['Ct_test']:
             """
@@ -923,7 +925,7 @@ class FlowField:
                 u_ind += ux
                 v_ind += uy
                 w_ind += uz
-                u_wake, v_wake, w_wake = np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u))
+            u_wake, v_wake, w_wake = np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u))
             
             print('>>> Compute wakes',end='')
             with Timer('Wake call'):
@@ -931,10 +933,10 @@ class FlowField:
                 #print_Ct()
             PowerTot=0
             nWT=len(sorted_map)
-            for i, (coord,turbine) in enumerate(sorted_map):
-                print('turbine %d:' %i,turbine.power)
-                PowerTot+=turbine.power
-            print('Avg Power per WT:',PowerTot/nWT/1000)
+            # for i, (coord,turbine) in enumerate(sorted_map):
+            #     # print('turbine %d:' %i,turbine.power)
+            #     PowerTot+=turbine.power
+            # print('Avg Power per WT:',PowerTot/nWT/1000)
             self.u_induct = u_ind
             self.v_induct = v_ind
             self.w_induct = w_ind
@@ -969,10 +971,10 @@ class FlowField:
                         #print_Ct()
                     PowerTot=0
                     nWT=len(sorted_map)
-                    for i, (coord,turbine) in enumerate(sorted_map):
-                        print('turbine %d:' %i,turbine.power)
-                        PowerTot+=turbine.power
-                    print('Avg Power per WT:',PowerTot/nWT/1000)
+                    # for i, (coord,turbine) in enumerate(sorted_map):
+                    #     # print('turbine %d:' %i,turbine.power)
+                    #     PowerTot+=turbine.power
+                    # print('Avg Power per WT:',PowerTot/nWT/1000)
 
                 self.u_induct = u_ind
                 self.v_induct = v_ind

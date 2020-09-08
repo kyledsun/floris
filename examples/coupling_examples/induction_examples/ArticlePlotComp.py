@@ -1,5 +1,5 @@
 """
-Plots velocity plots for the flow field with and without induction and induction only.
+Plots induction velocity contour plots to replicate Emmanuel Branlard's WIZ.
 """
 
 import numpy as np
@@ -17,8 +17,8 @@ from floris.utilities import Vec3
 input_file="../example_induction_input.json"
 rcParams['contour.negative_linestyle'] = 'solid'
 # --- Resolution Parameters
-ny= 120
-nx= 100
+ny= 120 #200
+nx= 400 #800
 resolution=Vec3(nx, ny, 2)
 
 minSpeed = 0.5
@@ -45,7 +45,8 @@ fi.floris.farm.turbines[0].rotor_diameter = D
 # Calculate wake
 fi.calculate_wake(yaw_angles=[30],Ind_Opts=Ind_Opts)
 
-bounds=[-5*D/2,3*D/2,-2*D/2,2*D/2,89,90] # xmin xmax .. zmin zmax
+# bounds=[-5*D/2,3*D/2,-2*D/2,2*D/2,89,90] # xmin xmax .. zmin zmax
+bounds=[-5*D/2,5*D,-5*D/2,5*D/2,89,90] # xmin xmax .. zmin zmax
 U0 = fi.floris.farm.initwind[0]
 yaw = fi.floris.farm.turbines[0].yaw_pos
 
@@ -67,16 +68,16 @@ hor_plane2.df.u = ((hor_plane2.df.u_ind + U0)*np.cos(yaw) + (hor_plane2.df.v_ind
 # hor_plane2.df.u = np.sqrt(((hor_plane2.df.u_ind+U0)*np.cos(yaw) + (hor_plane2.df.v_ind)*np.sin(yaw))**2)/(U0*np.cos(yaw))
 
 # print(hor_plane2.df.head())
-# ===============================================================================================
-# Induction Only Plot
-# ===============================================================================================
-fig, ax = plt.subplots()
-# Plot induction
-wfct.visualization.visualize_cut_plane(hor_plane2, ax=ax, levels = contours,fig=fig,cbar=True)
-wfct.visualization.plot_turbines_with_fi(ax,fi)
-ax.set_title('Vortex Cylinder Velocity Field', fontsize = 16)
-ax.set_xlabel('x [-]', fontsize = 14)
-ax.set_ylabel('y [-]', fontsize = 14)
+# # ===============================================================================================
+# # Induction Only Plot
+# # ===============================================================================================
+# fig, ax = plt.subplots()
+# # Plot induction
+# wfct.visualization.visualize_cut_plane(hor_plane2, ax=ax, levels = contours,fig=fig,cbar=True)
+# wfct.visualization.plot_turbines_with_fi(ax,fi)
+# ax.set_title('Vortex Cylinder Velocity Field', fontsize = 16)
+# ax.set_xlabel('x [-]', fontsize = 14)
+# ax.set_ylabel('y [-]', fontsize = 14)
 
 # ===============================================================================================
 # Emmanuel Plot Formatting

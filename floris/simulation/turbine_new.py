@@ -433,7 +433,7 @@ Returns:
                 longi = False
                 tang  = True
                 # print('.',end='')
-                ux,uy,uz = self.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=False, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
+                ux,uy,uz = self.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=False, Decay=False, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
             else:
                 # update vortex cylinder velocity and loading
                 r_bar_cut = 0.01
@@ -458,7 +458,7 @@ Returns:
                 longi = False
                 tang  = True
                 # print('.',end='')
-                ux,uy,uz = self.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=True, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
+                ux,uy,uz = self.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=True, Decay = True, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
 
         return ux,uy,uz
 
@@ -538,7 +538,7 @@ Returns:
         self.r=r
         self.VC_Ct=VC_Ct
 
-    def compute_u(self, Xg, Yg, Zg, only_ind=False, longi=False, tang=True, root=False, no_wake=False, ground=None, Model=None, R_far_field=6): 
+    def compute_u(self, Xg, Yg, Zg, only_ind=False, longi=False, tang=True, root=False, no_wake=False, ground=None, Decay=False, Model=None, R_far_field=6): 
         """ 
         INPUTS:
             Xg, Yg, Zg: Control points in global coordinates where the flow is to be computed. 
@@ -571,7 +571,12 @@ Returns:
         #     self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos)
         
         # TODO TODO chi needs induction effect!
-        self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos)
+        # self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos)
+        # print('Chi: ', self.chi)
+        if self.VC_Ct > 1:
+            self.VC_Ct = 1
+        self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos) * (1+0.3*(1-np.sqrt(1-self.VC_Ct[0])))
+        # print('Chi_: ', self.chi)
         # self.chi = self.chi*1.5
         # print('Chi: ', self.chi)
 
@@ -613,7 +618,7 @@ Returns:
                     if np.abs(self.chi)>1e-7:
                         if Model =='VC':
                             uxc0,uyc0,uzc0 = svc_tang_u(Xc0,Y,Zc0,gamma_t=self.gamma_t,R=self.R,m=m,polar_out=False)
-                            print('-----------------Vortex Cylinder Skewed Model------------------')
+                            # print('-----------------Vortex Cylinder Skewed Model------------------')
                         else:
                             raise NotImplementedError('Model '+Model + ', with yaw.')
                     else:
@@ -696,6 +701,18 @@ Returns:
         uyg = T_c2g[1,0]*uxc+T_c2g[1,1]*uyc+T_c2g[1,2]*uzc
         uzg = T_c2g[2,0]*uxc+T_c2g[2,1]*uyc+T_c2g[2,2]*uzc
 
+        # Decay
+        if Decay:
+            bDownStream=Xg>=(Yg-self.r_hub[1])*np.tan(-self.yaw_pos)-0.20*self.R+self.r_hub[0]
+            XDecay = np.ones(uxg.shape)
+            # XDecay[bDownStream] = np.exp(-((Xg[bDownStream]-self.r_hub[0])/(self.R*2))**2)
+            XDecay[bDownStream] = np.exp(-((Xg[bDownStream]-self.r_hub[0])/(self.R*2)*self.VC_Ct)**2)
+            # XDecay[bDownStream] = (1-0.02)**(Xg[bDownStream]-self.r_hub[0])
+            # XDecay[bDownStream] = (1-0.02*self.VC_Ct)**(Xg[bDownStream]-self.r_hub[0])
+            uxg*=XDecay
+            uyg*=XDecay
+            uzg*=XDecay
+
         if no_wake:
             # Zero wake induction
             # Remove wake downstream of turbine (include small region in front of turbine to ensure induction does not affect free stream velocity)
@@ -710,6 +727,18 @@ Returns:
             uxg[bSelZero]=0
             uyg[bSelZero]=0
             uzg[bSelZero]=0
+
+            # # Removes ground effect vortex cylinder wake
+            # # Remove wake downstream of turbine (include small region in front of turbine to ensure induction does not affect free stream velocity)
+            # bDownStream=Xg>=(Yg+self.r_hub[1])*np.tan(-self.yaw_pos)-0.20*self.R+self.r_hub[0]
+            # vortex_vector = np.sqrt((-(Zg+self.r_hub[2]))**2+((Yg+self.r_hub[1])-(Xg-self.r_hub[0])*np.tan(self.chi+self.yaw_pos))**2) 
+            # Rc = vortex_vector/np.linalg.norm(np.array([1,np.tan(self.chi+self.yaw_pos),0]))        
+            # bRotorTube = Rc<self.R*1.001 # we give a margin since VD and VC have fields very dissimilar at R+/-eps
+            # # Check if point is both downstream and within vortex cylinder radius
+            # bSelZero = np.logical_and(bRotorTube,bDownStream)
+            # uxg[bSelZero]=0
+            # uyg[bSelZero]=0
+            # uzg[bSelZero]=0
 
         # Add free stream if requested
         if not only_ind:

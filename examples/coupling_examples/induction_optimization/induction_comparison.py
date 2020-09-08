@@ -9,6 +9,9 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from floris.tools.optimization.scipy.yaw import YawOptimization
 import floris.tools as wfct
 from floris.utilities import Vec3
+import pickle
+import time
+tstart = time.time()
 """
 Compares the optimization of a wind farm with and without modelling blockage effects in the 
 induction zone of turbines.
@@ -61,7 +64,7 @@ hor_plane = fi.get_hor_plane(x_resolution=400, y_resolution=100)
 # Plot and show
 fig, axs = plt.subplots(nrows = 2, ncols=1)
 wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0], minSpeed=4, maxSpeed=8.5)
-axs[0].set_title("No Induction")
+axs[0].set_title("Baseline")
 
 base_power = fi.get_farm_power()
 # =============================================================================
@@ -73,6 +76,7 @@ Ind_Opts = fi_ind.floris.farm.flow_field.Ind_Opts
 # Sets induction to true
 Ind_Opts['induction'] = True
 Ind_Opts['Model'] = 'VC'
+Ind_Opts['nIter'] = 2
 # fi_ind.floris.farm.flow_field.Ind_Opts = Ind_Opts
 fi_ind.IndOpts = Ind_Opts
 
@@ -88,11 +92,12 @@ yaw_ind_angles = yaw_ind_opt.optimize()
 fi_ind.calculate_wake(yaw_angles=yaw_ind_angles)
 
 # Initialize the horizontal cut
-hor_plane = fi_ind.get_hor_plane(x_resolution=400, y_resolution=100)
+hor_plane2 = fi_ind.get_hor_plane(x_resolution=400, y_resolution=100)
 
 # Plot and show
-wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[1], minSpeed=4, maxSpeed=8.5)
-axs[1].set_title("With Blockage Effect")
+wfct.visualization.visualize_cut_plane(hor_plane2, ax=axs[1], minSpeed=4, maxSpeed=8.5)
+axs[1].set_title("FLORIS With Blockage Effects")
+fig.tight_layout()
 
 ind_power = fi_ind.get_farm_power()
 
@@ -138,6 +143,9 @@ print("----------------------------------------------------------------")
 for i in range(len(yaw_angles)):
     print("Turbine %d:\t%.2f\t\t%.2f\t\t%.2f" %(i,yaw_angles[i],yaw_ind_angles[i],(yaw_ind_angles[i]-yaw_angles[i])))
 
+# # Save pickle file for longer simulations (i.e. 5x5)
+# pickle.dump([hor_plane,hor_plane2,base_power,ind_power,init_powers,opt_powers,turbine_vel,indTurbine_vel,yaw_angles,yaw_ind_angles],open('Stored_Simulations/5x5_Layout_Comp2.p','wb'))
+
 fig,ax = plt.subplots()
 x = np.arange(len(yaw_angles))
 ax.scatter(x,yaw_angles,zorder=3)
@@ -149,8 +157,9 @@ ax.set_xticklabels(['T'+str(i) for i in x],fontsize=14)
 ax.tick_params(axis='y',labelsize=14)
 ax.set_ylabel('Yaw Angles (deg)',fontsize=16)
 ax.set_xlabel('Turbine',fontsize=16)
-ax.legend(['Baseline','FLORIS w/ Blockage'],fontsize=14)
+ax.legend(['Baseline','Blockage'],loc = 'lower left',fontsize=14)
 fig.suptitle('%dx%d Yaw Optimized Turbine Yaw Angles' %(m,n),fontsize=20)
 fig.tight_layout(rect=(0,0,1,0.93))
 
+print(time.strftime("%H:%M:%S", time.gmtime(time.time()-tstart)))
 plt.show()

@@ -31,6 +31,10 @@ sowfa_flow_data = si.flow_data
 
 # Load the FLORIS case in
 fi = wfct.floris_interface.FlorisInterface("../example_input.json")
+Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
+Ind_Opts['induction'] = True
+Ind_Opts['Model'] = 'VC'
+fi.IndOpts = Ind_Opts
 fi.calculate_wake()
 
 # Set the relevant FLORIS parameters to equal the SOWFA case

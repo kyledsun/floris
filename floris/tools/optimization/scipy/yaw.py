@@ -116,8 +116,11 @@ class YawOptimization(Optimization):
                 'maxiter': 100,
                 'disp': True,
                 'iprint': 2,
-                'ftol': 1e-5
-            } #, 'eps': 0.01}
+                'ftol': 1e-7,
+                'eps': 0.01,
+                # 'ftol': 1e-30,
+                # 'eps': 0.0004,
+            }
 
         self.unc_pmfs = unc_pmfs
 
@@ -159,7 +162,7 @@ class YawOptimization(Optimization):
     def _optimize(self):
         """
         Find optimum setting of turbine yaw angles for power production
-        given fixed atmospheric conditins (wind speed, direction, etc.).
+        given fixed atmospheric conditions (wind speed, direction, etc.).
 
         Returns:
             opt_yaw_angles (np.array): optimal yaw angles of each turbine.

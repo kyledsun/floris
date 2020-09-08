@@ -32,13 +32,14 @@ fi = wfct.floris_interface.FlorisInterface(
 
 # Set turbine locations to 3 turbines in a row
 D = fi.floris.farm.turbines[0].rotor_diameter
-layout_x = [0, 7 * D, 14 * D]
-layout_y = [0, 0, 0]
+layout_x = [0, 5*D, 10*D, 15*D, 20*D, 25*D, 30*D, 35*D]
+layout_y = [0, 0, 0, 0, 0, 0, 0, 0]
 fi.reinitialize_flow_field(layout_array=(layout_x, layout_y))
 fi.calculate_wake()
 
 # Initial power output
 power_initial = fi.get_farm_power()
+init_powers = fi.get_turbine_power()
 
 # =============================================================================
 print("Plotting the FLORIS flowfield...")
@@ -79,6 +80,25 @@ print(
     "Total Power Gain = %.1f%%" % (100.0 * (power_opt - power_initial) / power_initial)
 )
 print("==========================================")
+print('Power Initial:', power_initial)
+print('Optimized Power: ', power_opt)
+print("================================================================")
+print('Turbine Powers:')
+print("----------------------------------------------------------------")
+print('\t\tBaseline\tOptimized\tDifference')
+print("----------------------------------------------------------------")
+opt_powers = fi.get_turbine_power()
+for i in range(len(init_powers)):
+    print('Turbine %d: \t%.2f\t%.2f\t%.2f' %(i, init_powers[i],opt_powers[i],(opt_powers[i] - init_powers[i])))
+
+fig, ax = plt.subplots()
+x = np.arange(len(yaw_angles))
+ax.plot(x,yaw_angles)
+ax.scatter(x,yaw_angles)
+ax.set_ylabel('Yaw Angles (deg)',fontsize=14)
+ax.set_xlabel('Turbine',fontsize=14)
+ax.set_title('Optimial Yaw Angles (2)', fontsize=16)
+
 # =============================================================================
 print("Plotting the FLORIS flowfield with yaw...")
 # =============================================================================

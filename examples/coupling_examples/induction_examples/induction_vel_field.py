@@ -26,9 +26,27 @@ contours = np.sort([1.01,0.99,0.98,0.95,0.9,0.8,0.7,0.6,0.5])
 # Initialize floris interface object
 fi = wfct.floris_interface.FlorisInterface(input_file)
 
+# Set paramters for iteration test
+sep = 5 # streamwise separation for turbines (*D)
+sepy = 3 # spanwise spearation between turbines (*D)
+# Creates a turbine field with n rows and m columns
+n = 3
+m = 2
+
+D = fi.floris.farm.turbines[0].rotor_diameter
+layout_x = []
+layout_y = []
+for i in range(m):
+    for j in range(n):
+        layout_x.append(j*sep*D)
+        layout_y.append(i*sepy*D)
+
+# Reinitialize flow field with new specified layout
+fi.reinitialize_flow_field(layout_array=[layout_x,layout_y])
+
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 Ind_Opts['Model'] ='VC'
-Ind_Opts['nIter'] = 1
+Ind_Opts['nIter'] = 2
 Ind_Opts['Ground'] = True
 fi.IndOpts = Ind_Opts
 
@@ -40,25 +58,28 @@ hor_plane = fi.get_hor_plane(x_resolution = resolution.x1, y_resolution = resolu
 
 hor_plane2 = copy.deepcopy(hor_plane)
 hor_plane2.df.u = hor_plane2.df.u_ind
-print(hor_plane.df.head())
+
+hor_plane3 = copy.deepcopy(hor_plane)
+hor_plane3.df.u = hor_plane3.df.u - hor_plane3.df.u_ind
+# print(hor_plane3.df.head())
 # U0 = fi.floris.farm.initwind[0]
 # yaw = fi.floris.farm.turbines[0].yaw_pos
 # hor_plane2.df.u = ( (hor_plane2.df.u_ind + U0)*np.cos(yaw) + (hor_plane2.df.v_ind)*np.sin(yaw) ) /U0*np.cos(yaw)
 
-# ===============================================================================================
-# Vertical Plot
-# ===============================================================================================
+# # ===============================================================================================
+# # Vertical Plot
+# # ===============================================================================================
 
-y_plane = fi.get_y_plane(y_loc=0,x_resolution = resolution.x1, z_resolution = resolution.x2)
-y_plane2 = copy.deepcopy(y_plane)
-y_plane2.df.u = y_plane2.df.u_ind
+# y_plane = fi.get_y_plane(y_loc=0,x_resolution = resolution.x1, z_resolution = resolution.x2)
+# y_plane2 = copy.deepcopy(y_plane)
+# y_plane2.df.u = y_plane2.df.u_ind
 
-fig, ax = plt.subplots()
-# Plot vertical plane of streamwise induction
-wfct.visualization.visualize_cut_plane(y_plane2, ax=ax)#, minSpeed = -0.25, maxSpeed = 0.25)
-ax.set_title('Induction Only Vertical Plot',fontsize=16)
-ax.set_xlabel('x [-]', fontsize = 14)
-ax.set_ylabel('z [-]', fontsize = 14)
+# fig, ax = plt.subplots()
+# # Plot vertical plane of streamwise induction
+# wfct.visualization.visualize_cut_plane(y_plane2, ax=ax)#, minSpeed = -0.25, maxSpeed = 0.25)
+# ax.set_title('Induction Only Vertical Plot',fontsize=16)
+# ax.set_xlabel('x [-]', fontsize = 14)
+# ax.set_ylabel('z [-]', fontsize = 14)
 
 # ===============================================================================================
 fig, ax = plt.subplots()
@@ -68,11 +89,16 @@ wfct.visualization.plot_turbines_with_fi(ax,fi)
 ax.set_title('Streamwise Induction Only', fontsize=22)
 ax.set_xlabel('x [-]', fontsize = 16)
 ax.set_ylabel('y [-]', fontsize = 16)
-ax.set_xlim([-200,200])
-ax.set_ylim([-100,100])
+ax.set_xlim([-250,200])
+ax.set_ylim([-150,150])
 # ===============================================================================================
 
 fig, ax = plt.subplots(nrows = 3, sharex=True, sharey=True)
+# Plot flow field without induction
+wfct.visualization.visualize_cut_plane(hor_plane3, ax=ax[0], minSpeed = minspeed, maxSpeed = maxspeed, fig=fig, cbar=True)
+wfct.visualization.plot_turbines_with_fi(ax[0],fi)
+ax[0].set_title('Flow Field without Induction', fontsize=14)
+
 # Plot flow field with induction
 wfct.visualization.visualize_cut_plane(hor_plane, ax=ax[2], minSpeed = minspeed, maxSpeed = maxspeed, fig=fig, cbar=True)
 wfct.visualization.plot_turbines_with_fi(ax[2],fi)
@@ -82,22 +108,6 @@ ax[2].set_title('Flow Field with Induction', fontsize=14)
 wfct.visualization.visualize_cut_plane(hor_plane2, ax=ax[1], minSpeed = minspeed, maxSpeed = maxspeed, fig=fig, cbar=True)
 wfct.visualization.plot_turbines_with_fi(ax[1],fi)
 ax[1].set_title('Induction Only', fontsize=14)
-
-fi2 = wfct.floris_interface.FlorisInterface(input_file)
-ind_opts = fi2.floris.farm.flow_field.Ind_Opts
-ind_opts['induction'] = False
-fi2.floris.farm.flow_field.Ind_Opts = ind_opts
-
-# Calculate wake
-fi2.calculate_wake()
-
-# Initialize the horizontal cut
-hor_plane = fi2.get_hor_plane(x_resolution = resolution.x1, y_resolution = resolution.x2)
-
-# Plot flow field without induction
-wfct.visualization.visualize_cut_plane(hor_plane, ax=ax[0], minSpeed = minspeed, maxSpeed = maxspeed, fig=fig, cbar=True)
-wfct.visualization.plot_turbines_with_fi(ax[0],fi2)
-ax[0].set_title('Flow Field without Induction', fontsize=14)
 fig.tight_layout()
 
 plt.show()

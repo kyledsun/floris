@@ -33,6 +33,8 @@ fi.calculate_wake()
 # Get horizontal plane at default height (hub-height)
 hor_plane = fi.get_hor_plane()
 
+print('Turbine Powers:',fi.get_turbine_power())
+
 # Plot and show
 fig, ax = plt.subplots()
 wfct.visualization.visualize_cut_plane(hor_plane, ax=ax)

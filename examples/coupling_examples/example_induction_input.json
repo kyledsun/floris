@@ -27,7 +27,7 @@
         "turbulence_intensity": [
           0.06
         ],
-        "wind_shear": 0.0,
+        "wind_shear": 0.12,
         "specified_wind_height": -1,
         "wind_veer": 0.0,
         "air_density": 1.225,

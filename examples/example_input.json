@@ -261,7 +261,7 @@
           }
         },
         "induction_parameters": {
-          "induction": true,
+          "induction": false,
           "blend": false,
           "Rfact": 1,
           "GammaFact": 1,

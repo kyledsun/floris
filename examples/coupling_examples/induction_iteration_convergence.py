@@ -21,9 +21,10 @@ specified wind farm.
 
 # --- Plot options
 Induction = True # Include induction
-horPlot = True # Plots horizontal cuts of wind farms for each wind farm layout
-IterPlots = True # Plots powers ,velocities and Ct values as a function of iteration
-TurbineIterPlots = False # Plots turbine power power,velocity, and Ct values individually per iteration
+horPlot = False # Plots horizontal cuts of wind farms for each wind farm layout
+IterPlots = False # Plots powers ,velocities and Ct values as a function of iteration
+Legends = True # Includes turbine legends in IterPlots
+TurbineIterPlots = True # Plots turbine power power,velocity, and Ct values individually per iteration
 ReadOuts = False # Prints dataframes of turbine powers as a function of iterations used
 
 # --- Resolution Parameters
@@ -134,27 +135,33 @@ if IterPlots:
     def iterationplot(df_list,sep,ylabel):
         # Plots the convergence for each turbine variable for each separtion
         # Plots the normalized variable for each turbine in the field as a function of the number of iterations
-        fig,axs = plt.subplots(1, len(sep), sharey=True, sharex=True, figsize=(12.0,5.0))
+        # fig,axs = plt.subplots(1, len(sep), sharey=True, sharex=True, figsize=(12.0,5.0))
+        fig,axs = plt.subplots(len(sep), 1, sharey=True, sharex=False, figsize=(6.0,9.0))
         for i in range(len(sep)):
             if len(sep) == 1:
                 ax = axs
-                ax.set_ylabel(ylabel,fontsize=16)
+                # ax.set_ylabel(ylabel,fontsize=16)
+                ax.set_xlabel('Iterations',fontsize=15)
             else:
                 ax = axs[i]
-                axs[0].set_ylabel(ylabel,fontsize=16)
+                # axs[0].set_ylabel(ylabel,fontsize=16)
+                axs[len(sep)-1].set_xlabel('Iterations',fontsize=15)
             ax.plot(normalize(df_list[0]))
             ax.set_title('%dD Separation' %sep[i], fontsize=16)
             ax.yaxis.set_major_formatter(ticker.ScalarFormatter(useOffset=False))
             ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
             
-            if len(sep) == 1:
-                ax.legend(df_list[0].columns, loc="lower right", fontsize=13) # TODO find better location for legend
-            else:
-                axs[len(sep)-1].legend(df_list[0].columns, loc="lower right",fontsize=13) # TODO find better location for legend
+            if Legends:
+                if len(sep) == 1:
+                    ax.legend(df_list[0].columns, loc="lower right", fontsize=13) # TODO find better location for legend
+                else:
+                    axs[len(sep)-1].legend(df_list[0].columns, loc="lower right",fontsize=13) # TODO find better location for legend
         
-        fig.suptitle('Normalized Iteration Plot For %dx%d Layout' %(m,n), fontsize=24)
-        fig.text(0.5,0.04,'Iterations', ha='center',fontsize=16)
-        fig.tight_layout(rect=[0,0.05,1,0.94])
+        fig.suptitle('Normalized Iteration Plot: %dx%d Layout' %(m,n), fontsize=22)
+        # fig.text(0.5,0.04,'Iterations', ha='center',fontsize=16)
+        fig.text(0.04, 0.5, ylabel, va='center', rotation='vertical', fontsize=15)
+        # fig.tight_layout(rect=[0,0.05,1,0.95])
+        fig.tight_layout(rect=[0.05,0,1,0.95])
 
     iterationplot(power_df,sep,'Normalized Power')
     iterationplot(velocity_df,sep,'Normalized Velocity')
@@ -165,6 +172,7 @@ if TurbineIterPlots:
         # Plots the convergence for each turbine separtion simulation
         # Plots the normalized variable for each turbine in the field as a function of the number of iterations
         fig,axs = plt.subplots(1, len(layout_y), sharex=True, figsize=(15.0,4.0))
+        # fig,axs = plt.subplots(len(layout_y), 1, figsize=(5.0,12.0))
         for (i,col) in enumerate(df_list[0].columns):
             ax = axs[i]
             ax.set_title(col)
@@ -172,9 +180,11 @@ if TurbineIterPlots:
             ax.get_yaxis().get_major_formatter().set_useOffset(False)
             ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         axs[0].set_ylabel(ylabel)
-        fig.suptitle('Induction Iteration Test for %dD Separation' %sep[0])
+        # axs[len(layout_y)-1].set_xlabel('Number of Iterations')
+        fig.suptitle('Induction Iteration Test for %dD Separation' %sep[0], fontsize=16)
         fig.text(0.5,0.04,'Number of Iterations', ha='center')
-        fig.tight_layout(rect = [0,0.04,1,0.95])
+        # fig.text(0.04,0.5, ylabel, rotation='vertical', va='center', fontsize=14)
+        fig.tight_layout(rect = [0.0,0.05,1,0.96])
 
     turbineiteration(power_df,sep,'Power')
     turbineiteration(velocity_df,sep,'Velocity')

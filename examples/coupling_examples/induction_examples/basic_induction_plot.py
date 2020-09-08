@@ -8,47 +8,64 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 # --- Local
 import floris.tools as wfct
 from floris.utilities import Vec3
-
+import time
+tstart = time.time()
 """
-Plots horizontal plane with blockage effects
+Plots horizontal plane with blockage effects. Returns farm and turbine powers.
 """
 
-ny=100
-nx=ny*4
-resolution=Vec3(nx, ny, 2)
-
-input_file="../Layout_1x2.json"
-
+input_file="../example_induction_input.json"
 # Initialize floris interface object
 fi = wfct.floris_interface.FlorisInterface(input_file)
 
-D = fi.floris.farm.turbines[0].rotor_diameter
-bounds=[-4*D,16*D,-2*D-10,2*D+10,89,90] # xmin xmax .. zmin zmax
+# Set paramters for iteration test
+sep = 5 # streamwise separation for turbines (*D)
+sepy = 3 # spanwise spearation between turbines (*D)
+# Creates a turbine field with n rows and m columns
+n = 5
+m = 1
 
-fi.reinitialize_flow_field(layout_array=[[0],[0]])
+D = fi.floris.farm.turbines[0].rotor_diameter
+layout_x = []
+layout_y = []
+for i in range(m):
+    for j in range(n):
+        layout_x.append(j*sep*D)
+        layout_y.append(i*sepy*D)
+
+# Reinitialize flow field with new specified layout
+fi.reinitialize_flow_field(layout_array=[layout_x,layout_y])
 
 # Read in induction options
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 # Set induction to true to model blockage effect
 Ind_Opts['induction']=True
 Ind_Opts["Model"] = 'VC'
+Ind_Opts['nIter'] = 2
 
 fi.IndOpts = Ind_Opts
 
 # Calculate wake
-fi.calculate_wake(yaw_angles=[20], Ind_Opts=Ind_Opts)
+fi.calculate_wake(Ind_Opts=Ind_Opts)
 
 # Initialize the horizontal cut
-hor_plane = fi.get_hor_plane(
-    # x_resolution = resolution.x1,
-    # y_resolution = resolution.x2,
-    x_bounds = tuple(bounds[0:2]),
-    y_bounds = tuple(bounds[2:4]),
-    Ind_Opts = Ind_Opts)
+hor_plane = fi.get_hor_plane(Ind_Opts = Ind_Opts, x_resolution=400, y_resolution=100)
+
+print('==============================================')
+print("Farm Power: ", fi.get_farm_power())
+print('==============================================')
+print("Turbine Powers:")
+print('----------------------------------------------')
+turbpow = fi.get_turbine_power()
+for i in range(len(turbpow)):
+    print('Turbine: ', turbpow[i]/1000)
+print('==============================================')
 
 # Plot and Show
 fig, ax = plt.subplots()
 wfct.visualization.visualize_cut_plane(hor_plane, ax=ax)
 wfct.visualization.plot_turbines_with_fi(ax,fi)
 ax.set_title('Floris with Induction')
+
+print('Time Elapsed: ', (time.time()-tstart))
 plt.show()
