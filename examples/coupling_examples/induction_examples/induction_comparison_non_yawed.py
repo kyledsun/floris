@@ -14,6 +14,7 @@ Compares the turbine parameters of a wind farm with and without modelling blocka
 induction zone of turbines.
 """
 
+Readouts = False
 input_file="../OptLayout_2x3.json"
 # Initialize the floris interface
 fi = wfct.floris_interface.FlorisInterface(input_file)
@@ -99,27 +100,47 @@ init_powers = np.array(fi.get_turbine_power())
 opt_powers = np.array(fi_ind.get_turbine_power())
 for i in range(len(init_powers)):
     print('Turbine %d: \t%.2f\t%.2f\t%.2f' %(i, init_powers[i],opt_powers[i],(opt_powers[i] - init_powers[i])))
+if Readouts:
+    print("----------------------------------------------------------------")
+    print('Relative Power Change with Blockages (%):')
+    print("----------------------------------------------------------------")
+    for i in range(len(init_powers)):
+        print('Turbine %d: \t%.2f' %(i, ((opt_powers[i] - init_powers[i])/ init_powers[i])*100))
 
-print("----------------------------------------------------------------")
-print('Relative Power Change with Blockages (%):')
-print("----------------------------------------------------------------")
-for i in range(len(init_powers)):
-    print('Turbine %d: \t%.2f' %(i, ((opt_powers[i] - init_powers[i])/ init_powers[i])*100))
+    turbine_vel = [] ; indTurbine_vel = [] ; turbine_ct = [] ; indTurbine_ct = [] ; turbine_ti = [] ; indTurbine_ti = []
+    for turbine in fi.floris.farm.turbine_map.turbines:
+        turbine_vel.append(turbine.average_velocity)
+        turbine_ct.append(turbine.Ct)
+        turbine_ti.append(turbine.current_turbulence_intensity)
 
-print("================================================================")
-print('Velocities Seen By Each Turbine:')
-print("----------------------------------------------------------------")
-print('\t\tNo Induction\tInduction\tDifference')
-print("----------------------------------------------------------------")
-turbine_vel = []
-indTurbine_vel = []
-for turbine in fi.floris.farm.turbine_map.turbines:
-    turbine_vel.append(turbine.average_velocity)
-for turbine in fi_ind.floris.farm.turbine_map.turbines:
-    indTurbine_vel.append(turbine.average_velocity)
+    for turbine in fi_ind.floris.farm.turbine_map.turbines:
+        indTurbine_vel.append(turbine.average_velocity)
+        indTurbine_ct.append(turbine.Ct)
+        indTurbine_ti.append(turbine.current_turbulence_intensity)
 
-for i in range(len(turbine_vel)):
-    print('Turbine %d: \t%.4f\t\t%.4f\t\t%.4f' %(i,turbine_vel[i],indTurbine_vel[i],(indTurbine_vel[i]-turbine_vel[i])))
+    print("================================================================")
+    print('Velocities Seen By Each Turbine:')
+    print("----------------------------------------------------------------")
+    print('\t\tNo Induction\tInduction\tDifference')
+    print("----------------------------------------------------------------")
+    for i in range(len(turbine_vel)):
+        print('Turbine %d: \t%.4f\t\t%.4f\t\t%.4f' %(i,turbine_vel[i],indTurbine_vel[i],(indTurbine_vel[i]-turbine_vel[i])))
+
+    print("================================================================")
+    print('Ct Seen By Each Turbine:')
+    print("----------------------------------------------------------------")
+    print('\t\tNo Induction\tInduction\tDifference')
+    print("----------------------------------------------------------------")
+    for i in range(len(turbine_ct)):
+        print('Turbine %d: \t%.4f\t\t%.4f\t\t%.4f' %(i,turbine_ct[i],indTurbine_ct[i],(indTurbine_ct[i]-turbine_ct[i])))
+
+    print("================================================================")
+    print('Turbulence Intensity Seen By Each Turbine:')
+    print("----------------------------------------------------------------")
+    print('\t\tNo Induction\tInduction\tDifference')
+    print("----------------------------------------------------------------")
+    for i in range(len(turbine_ti)):
+        print('Turbine %d: \t%.4f\t\t%.4f\t\t%.4f' %(i,turbine_ti[i],indTurbine_ti[i],(indTurbine_ti[i]-turbine_ti[i])))
 
 fig,ax = plt.subplots()
 ax.plot(np.arange(len(init_powers)),(opt_powers-init_powers)/opt_powers*100)

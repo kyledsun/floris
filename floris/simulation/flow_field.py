@@ -905,48 +905,48 @@ class FlowField:
         #     PowerTot+=turbine.power
         # print('Avg Power per WT:',PowerTot/nWT/1000)
 
-        if Ind_Opts['Ct_test']:
-            """
-            Used to test that the iteration calculations are only applied once and are not being cummulatively added.
-            """            
-            # Set number of iterations to one
-            Ind_Opts_temp = copy.deepcopy(Ind_Opts)
-            Ind_Opts_temp['nIter'] = 1
-            # Initialize induction velocities to zero
-            u_ind = np.zeros(np.shape(self.u))
-            v_ind = np.zeros(np.shape(self.u))
-            w_ind = np.zeros(np.shape(self.u))
+        if Ind_Opts['induction']:
+            if Ind_Opts['Ct_test']:
+                """
+                Used to test that the iteration calculations are only applied once and are not being cummulatively added.
+                """            
+                # Set number of iterations to one
+                Ind_Opts_temp = copy.deepcopy(Ind_Opts)
+                Ind_Opts_temp['nIter'] = 1
+                # Initialize induction velocities to zero
+                u_ind = np.zeros(np.shape(self.u))
+                v_ind = np.zeros(np.shape(self.u))
+                w_ind = np.zeros(np.shape(self.u))
 
-            # Loop through turbines and set Ct values to values calculated from initial calculate induction
-            # Recalculate induction field based on new Ct values.
-            # print('Length Sorted_Map: ', len(sorted_map))
-            for i,(coord, turbine) in enumerate(sorted_map):
-                print('------------Turbine %d---------------' %i)
-                ux,uy,uz = turbine.compute_induction(Ind_Opts_temp,rotated_x,rotated_y,rotated_z,CT0=self.Ct_list[i])
-                u_ind += ux
-                v_ind += uy
-                w_ind += uz
-            u_wake, v_wake, w_wake = np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u))
-            
-            print('>>> Compute wakes',end='')
-            with Timer('Wake call'):
-                u_wake, v_wake, w_wake = compute_wakes(u_wake,v_wake,w_wake,u_ind,v_ind,w_ind)
-                #print_Ct()
-            PowerTot=0
-            nWT=len(sorted_map)
-            # for i, (coord,turbine) in enumerate(sorted_map):
-            #     # print('turbine %d:' %i,turbine.power)
-            #     PowerTot+=turbine.power
-            # print('Avg Power per WT:',PowerTot/nWT/1000)
-            self.u_induct = u_ind
-            self.v_induct = v_ind
-            self.w_induct = w_ind
-            u_wake = (u_wake - u_ind)
-            v_wake = (v_wake + v_ind)
-            w_wake = (w_wake + w_ind)
+                # Loop through turbines and set Ct values to values calculated from initial calculate induction
+                # Recalculate induction field based on new Ct values.
+                # print('Length Sorted_Map: ', len(sorted_map))
+                for i,(coord, turbine) in enumerate(sorted_map):
+                    print('------------Turbine %d---------------' %i)
+                    ux,uy,uz = turbine.compute_induction(Ind_Opts_temp,rotated_x,rotated_y,rotated_z,CT0=self.Ct_list[i])
+                    u_ind += ux
+                    v_ind += uy
+                    w_ind += uz
+                u_wake, v_wake, w_wake = np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u))
+                
+                print('>>> Compute wakes',end='')
+                with Timer('Wake call'):
+                    u_wake, v_wake, w_wake = compute_wakes(u_wake,v_wake,w_wake,u_ind,v_ind,w_ind)
+                    #print_Ct()
+                PowerTot=0
+                nWT=len(sorted_map)
+                # for i, (coord,turbine) in enumerate(sorted_map):
+                #     # print('turbine %d:' %i,turbine.power)
+                #     PowerTot+=turbine.power
+                # print('Avg Power per WT:',PowerTot/nWT/1000)
+                self.u_induct = u_ind
+                self.v_induct = v_ind
+                self.w_induct = w_ind
+                u_wake = (u_wake - u_ind)
+                v_wake = (v_wake + v_ind)
+                w_wake = (w_wake + w_ind)
 
-        else:
-            if Ind_Opts['induction']:
+            else:
                 if Ind_Opts['nIter'] < 1:
                     raise Exception('Minimum one iteration is required when using induction')
                 # print("---------------Ind_Opts: ",Ind_Opts)

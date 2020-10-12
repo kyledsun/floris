@@ -19,6 +19,9 @@ ny= 100
 nx=ny*4
 resolution=Vec3(nx, ny, 2)
 
+crossplot = True
+vertplot = False
+
 minspeed = None #2
 maxspeed = None #7
 contours = np.sort([1.01,0.99,0.98,0.95,0.9,0.8,0.7,0.6,0.5])
@@ -52,7 +55,7 @@ fi.IndOpts = Ind_Opts
 
 # Calculate wake
 fi.calculate_wake()
-print('Ind Opts:', fi.IndOpts)
+# print('Ind Opts:', fi.IndOpts)
 # Initialize the horizontal cut
 hor_plane = fi.get_hor_plane(x_resolution = resolution.x1, y_resolution = resolution.x2)
 
@@ -67,20 +70,41 @@ hor_plane3.df.u = hor_plane3.df.u - hor_plane3.df.u_ind
 # hor_plane2.df.u = ( (hor_plane2.df.u_ind + U0)*np.cos(yaw) + (hor_plane2.df.v_ind)*np.sin(yaw) ) /U0*np.cos(yaw)
 
 # # ===============================================================================================
-# # Vertical Plot
-# # ===============================================================================================
+# Vertical Plot
+if vertplot:
+    y_plane = fi.get_y_plane(y_loc=0,x_resolution = resolution.x1, z_resolution = resolution.x2)
+    y_plane2 = copy.deepcopy(y_plane)
+    y_plane2.df.u = y_plane2.df.u_ind
 
-# y_plane = fi.get_y_plane(y_loc=0,x_resolution = resolution.x1, z_resolution = resolution.x2)
-# y_plane2 = copy.deepcopy(y_plane)
-# y_plane2.df.u = y_plane2.df.u_ind
+    fig, ax = plt.subplots()
+    # Plot vertical plane of streamwise induction
+    wfct.visualization.visualize_cut_plane(y_plane2, ax=ax)#, minSpeed = -0.25, maxSpeed = 0.25)
+    ax.set_title('Induction Only Vertical Plot',fontsize=16)
+    ax.set_xlabel('x [-]', fontsize = 14)
+    ax.set_ylabel('z [-]', fontsize = 14)
 
-# fig, ax = plt.subplots()
-# # Plot vertical plane of streamwise induction
-# wfct.visualization.visualize_cut_plane(y_plane2, ax=ax)#, minSpeed = -0.25, maxSpeed = 0.25)
-# ax.set_title('Induction Only Vertical Plot',fontsize=16)
-# ax.set_xlabel('x [-]', fontsize = 14)
-# ax.set_ylabel('z [-]', fontsize = 14)
+# ===============================================================================================
+# Cross Plot
+x_loc = [1400,800,1500]
+if crossplot:
+    for i in range(len(x_loc)):
+        x_plane = fi.get_cross_plane(x_loc=x_loc[i],y_resolution = resolution.x2, z_resolution = resolution.x2)
+        x_plane2 = copy.deepcopy(x_plane)
+        x_plane2.df.u = x_plane2.df.u_ind
 
+        fig, ax = plt.subplots()
+        # Plot cross plane of streamwise induction
+        wfct.visualization.visualize_cut_plane(x_plane, ax=ax, fig=fig, cbar=True)#, minSpeed = -0.25, maxSpeed = 0.25)
+        ax.set_title('Streamwise Velocity Cross Plane at X = '+str(x_loc[i]),fontsize=16)
+        ax.set_xlabel('y [-]', fontsize = 14)
+        ax.set_ylabel('z [-]', fontsize = 14)
+
+        fig, ax = plt.subplots()
+        # Plot cross plane of streamwise induction
+        wfct.visualization.visualize_cut_plane(x_plane2, ax=ax, fig=fig, cbar=True)#, minSpeed = -0.25, maxSpeed = 0.25)
+        ax.set_title('Streamwise Induction Velocity Cross Plane at X = '+str(x_loc[i]),fontsize=16)
+        ax.set_xlabel('y [-]', fontsize = 14)
+        ax.set_ylabel('z [-]', fontsize = 14)
 # ===============================================================================================
 fig, ax = plt.subplots()
 # Plot horizontal plane of streamwise induction
@@ -99,15 +123,17 @@ wfct.visualization.visualize_cut_plane(hor_plane3, ax=ax[0], minSpeed = minspeed
 wfct.visualization.plot_turbines_with_fi(ax[0],fi)
 ax[0].set_title('Flow Field without Induction', fontsize=14)
 
-# Plot flow field with induction
-wfct.visualization.visualize_cut_plane(hor_plane, ax=ax[2], minSpeed = minspeed, maxSpeed = maxspeed, fig=fig, cbar=True)
-wfct.visualization.plot_turbines_with_fi(ax[2],fi)
-ax[2].set_title('Flow Field with Induction', fontsize=14)
-
 # Plot induction
 wfct.visualization.visualize_cut_plane(hor_plane2, ax=ax[1], minSpeed = minspeed, maxSpeed = maxspeed, fig=fig, cbar=True)
 wfct.visualization.plot_turbines_with_fi(ax[1],fi)
 ax[1].set_title('Induction Only', fontsize=14)
 fig.tight_layout()
 
+# Plot flow field with induction
+wfct.visualization.visualize_cut_plane(hor_plane, ax=ax[2], minSpeed = minspeed, maxSpeed = maxspeed, fig=fig, cbar=True)
+wfct.visualization.plot_turbines_with_fi(ax[2],fi)
+ax[2].set_title('Flow Field with Induction', fontsize=14)
+if crossplot:
+    for i in x_loc:
+        ax[2].plot(np.ones(40)*i,np.linspace(hor_plane.df.x2.min(),hor_plane.df.x2.max(),40),linewidth = 0.5)
 plt.show()

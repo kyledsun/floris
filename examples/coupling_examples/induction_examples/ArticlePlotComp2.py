@@ -37,8 +37,8 @@ D= fi.floris.farm.turbines[0].rotor_diameter
 sep = 5 # streamwise separation for turbines (*D)
 sepy = 3 # spanwise spearation between turbines (*D)
 # Creates a turbine field with n rows and m columns
-n = 5
-m = 3
+n = 2
+m = 1
 layout_x = []
 layout_y = []
 for i in range(m):
@@ -83,7 +83,6 @@ Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 Ind_Opts['Model'] ='VC'
 Ind_Opts['nIter'] = 1
 Ind_Opts['Ct_test'] = True
-Ind_Opts['Ground'] = False
 fi.IndOpts = Ind_Opts
 
 fi.floris.farm.flow_field.set_ct(turbVCct)

@@ -136,6 +136,8 @@ class VelocityDeflection(LoggerBase):
             eps = self.eps_gain * D  # Use set value
             xLocs = x_locations - coord.x1
             idx = np.where((np.abs(xLocs) < D / 4))
+            # idx = np.where((np.abs(x_locations - coord_x1) < D / 4) & (np.abs(y_locations - coord_x2) < D / 2))
+            idx = np.where((np.abs(x_locations - coord.x1) < D / 4) & (np.abs(y_locations - coord.x2) < D / 2))
 
             yLocs = y_locations[idx] + 0.01 - coord.x2
 
