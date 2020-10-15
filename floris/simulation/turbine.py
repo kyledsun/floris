@@ -75,6 +75,14 @@ class Turbine(LoggerBase):
                     the rotor for an upstream turbine.
                 -   **TSR** (*float*): The tip-speed ratio of the turbine. This
                     parameter is used in the "curl" wake model.
+                -   **ngrid** (*int*, optional): The square root of the number
+                    of points to use on the turbine grid. This number will be
+                    squared so that the points can be evenly distributed.
+                    Defaults to 5.
+                -   **rloc** (*float, optional): A value, from 0 to 1, that determines
+                    the width/height of the grid of points on the rotor as a ratio of
+                    the rotor radius.
+                    Defaults to 0.5.
 
                     Need to Update _________________________________________
                     - R: rotor radius
@@ -145,18 +153,20 @@ Returns:
         self.use_turbulence_correction = False
 
         # Initiate to False unless specifically set
+        # For the following parameters, use default values if not user-specified
+        self.ngrid = int(properties["ngrid"]) if "ngrid" in properties else 5
+        self.rloc = float(properties["rloc"]) if "rloc" in properties else 0.5
         if "use_points_on_perimeter" in properties:
             self.use_points_on_perimeter = bool(properties["use_points_on_perimeter"])
         else:
             self.use_points_on_perimeter = False
 
-        
         self._initialize_turbine()
 
-        # # Initialize a vortex turbine (for induction computation)
-        # self.VC_WT = WindTurbine(R=self.rotor_diameter/2,
-        #         r_hub = [0,0,self.hub_height], #TODOTODO position?
-        #         e_shaft_yaw0=[1,0,0],e_vert=[0,0,1])
+        # The indices for this Turbine instance's points from the FlowField
+        # are set in `FlowField._discretize_turbine_domain` and stored
+        # in this variable.
+        self.flow_field_point_indices = None
 
     # Private methods
 
@@ -173,7 +183,7 @@ Returns:
         self.fCtInterp = interp1d(wind_speed, ct, fill_value="extrapolate")
 
         # constants
-        self.grid_point_count = 5 * 5
+        self.grid_point_count = self.ngrid * self.ngrid
         if np.sqrt(self.grid_point_count) % 1 != 0.0:
             raise ValueError("Turbine.grid_point_count must be the square of a number")
 
@@ -181,6 +191,10 @@ Returns:
 
         # initialize derived attributes
         self.grid = self._create_swept_area_grid()
+
+        # Compute list of inner powers
+        inner_power = np.array([self._power_inner_function(ws) for ws in wind_speed])
+        self.powInterp = interp1d(wind_speed, inner_power, fill_value="extrapolate")
 
     def _create_swept_area_grid(self):
         # TODO: add validity check:
@@ -196,9 +210,12 @@ Returns:
 
         # determine the dimensions of the square grid
         num_points = int(np.round(np.sqrt(self.grid_point_count)))
+
+        pt = self.rloc * self.rotor_radius
         # syntax: np.linspace(min, max, n points)
-        horizontal = np.linspace(-self.rotor_radius, self.rotor_radius, num_points)
-        vertical = np.linspace(-self.rotor_radius, self.rotor_radius, num_points)
+        horizontal = np.linspace(-pt, pt, num_points)
+
+        vertical = np.linspace(-pt, pt, num_points)
 
         # build the grid with all of the points
         grid = [(h, vertical[i]) for i in range(num_points) for h in horizontal]
@@ -218,6 +235,26 @@ Returns:
             ]
 
         return grid
+
+    def _power_inner_function(self, yaw_effective_velocity):
+        """
+        This method calculates the power for an array of yaw effective wind
+        speeds without the air density and turbulence correction parameters.
+        This is used to initialize the power interpolation method used to
+        compute turbine power.
+        """
+
+        # Now compute the power
+        cptmp = self._fCp(
+            yaw_effective_velocity
+        )  # Note Cp is also now based on yaw effective velocity
+        return (
+            0.5
+            * (np.pi * self.rotor_radius ** 2)
+            * cptmp
+            * self.generator_efficiency
+            * yaw_effective_velocity ** 3
+        )
 
     def _fCp(self, at_wind_speed):
         wind_speed = self.power_thrust_table["wind_speed"]
@@ -257,7 +294,9 @@ Returns:
             setattr(self, param, turbine_change_dict[param])
         self._initialize_turbine()
 
-    def calculate_swept_area_velocities(self, local_wind_speed, coord, x, y, z):
+    def calculate_swept_area_velocities(
+        self, local_wind_speed, coord, x, y, z, additional_wind_speed=None
+    ):
         """
         This method calculates and returns the wind speeds at each
         rotor swept area grid point for the turbine, interpolated from
@@ -298,20 +337,30 @@ Returns:
         # data = [np.mean(u_at_turbine[idx[i]]) for i in range(len(yPts))]
         # # PREVIOUS METHOD========================
 
-        # # NEW METHOD========================
-        # Sort by distance
-        flow_grid_points = np.column_stack([x.flatten(), y.flatten(), z.flatten()])
+        # Use this if no saved points (curl)
+        if self.flow_field_point_indices is None:
+            # # NEW METHOD========================
+            # Sort by distance
+            flow_grid_points = np.column_stack([x.flatten(), y.flatten(), z.flatten()])
 
-        # Set up a grid array
-        y_array = np.array(self.grid)[:, 0] + coord.x2
-        z_array = np.array(self.grid)[:, 1] + self.hub_height
-        x_array = np.ones_like(y_array) * coord.x1
-        grid_array = np.column_stack([x_array, y_array, z_array])
+            # Set up a grid array
+            y_array = np.array(self.grid)[:, 0] + coord.x2
+            z_array = np.array(self.grid)[:, 1] + self.hub_height
+            x_array = np.ones_like(y_array) * coord.x1
+            grid_array = np.column_stack([x_array, y_array, z_array])
 
-        ii = np.argmin(distance_matrix(flow_grid_points, grid_array), axis=0)
+            ii = np.argmin(distance_matrix(flow_grid_points, grid_array), axis=0)
+        else:
+            ii = self.flow_field_point_indices
 
         # return np.array(data)
-        return np.array(u_at_turbine.flatten()[ii])
+        if additional_wind_speed is not None:
+            return (
+                np.array(u_at_turbine.flatten()[ii]),
+                np.array(additional_wind_speed.flatten()[ii]),
+            )
+        else:
+            return np.array(u_at_turbine.flatten()[ii])
 
     def return_grid_points(self, coord):
         """
@@ -746,6 +795,43 @@ Returns:
             uyg += self.U0_g[1]
             uzg += self.U0_g[2]
         return uxg,uyg,uzg
+    def TKE_to_TI(self, turbulence_kinetic_energy):
+        """
+        Converts a list of turbulence kinetic energy values to
+        turbulence intensity.
+        Args:
+            turbulence_kinetic_energy (list): Values of turbulence kinetic
+                energy in units of meters squared per second squared.
+            wind_speed (list): Measurements of wind speed in meters per second.
+        Returns:
+            list: converted turbulence intensity values expressed as a decimal
+            (e.g. 10%TI -> 0.10).
+        """
+        total_turbulence_intensity = (
+            np.sqrt((2 / 3) * turbulence_kinetic_energy)
+        ) / self.average_velocity
+        return total_turbulence_intensity
+
+    def TI_to_TKE(self):
+        """
+        Converts TI to TKE.
+        Args:
+            wind_speed (list): Measurements of wind speed in meters per second.
+        Returns:
+            list: converted TKE values
+        """
+        return ((self.average_velocity * self.current_turbulence_intensity) ** 2) / (2 / 3)
+
+    def u_prime(self):
+        """
+        Converts a TKE to horizontal deviation component.
+        Args:
+            wind_speed (list): Measurements of wind speed in meters per second.
+        Returns:
+            list: converted u_prime values in meters per second
+        """
+        tke = self.TI_to_TKE()
+        return np.sqrt(2 * tke)
 
     # Getters & Setters
     @property
@@ -798,9 +884,9 @@ Returns:
                 npdf = np.array(pdf) * (1 / np.sum(pdf))
 
                 # calculate turbulence parameter (ratio of corrected power to original power)
-                return np.sum(
-                    [npdf[k] * self._fCp(xp[k]) * xp[k] ** 3 for k in range(100)]
-                ) / (self._fCp(mu) * mu ** 3)
+                return np.sum([npdf[k] * self.powInterp(xp[k]) for k in range(100)]) / (
+                    self.powInterp(mu)
+                )
 
     @property
     def current_turbulence_intensity(self):
@@ -1003,15 +1089,10 @@ Returns:
         yaw_effective_velocity = self.average_velocity * cosd(self.yaw_angle) ** pW
 
         # Now compute the power
-        cptmp = self.Cp  # Note Cp is also now based on yaw effective velocity
         return (
-            0.5
-            * self.air_density
-            * (np.pi * self.rotor_radius ** 2)
-            * cptmp
-            * self.generator_efficiency
+            self.air_density
+            * self.powInterp(yaw_effective_velocity)
             * self.turbulence_parameter
-            * yaw_effective_velocity ** 3
         )
 
     @property
