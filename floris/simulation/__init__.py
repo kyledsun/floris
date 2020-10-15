@@ -40,7 +40,7 @@ from . import wake_velocity, wake_deflection, wake_turbulence, wake_combination
 from .farm import Farm
 from .wake import Wake
 from .floris import Floris
-from .turbine_new import Turbine
+from .turbine import Turbine
 from .wind_map import WindMap
 from .flow_field import FlowField
 from .turbine_map import TurbineMap
