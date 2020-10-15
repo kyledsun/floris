@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import copy
 import os
 import matplotlib.pyplot as plt
@@ -22,8 +23,8 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 sep = 5 # streamwise separation for turbines (*D)
 sepy = 3 # spanwise spearation between turbines (*D)
 # Creates a turbine field with n rows and m columns
-n = 1
-m = 1
+n = 3
+m = 3
 
 D = fi.floris.farm.turbines[0].rotor_diameter
 layout_x = []
@@ -41,7 +42,6 @@ Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 # Set induction to true to model blockage effect
 Ind_Opts['induction']=True
 Ind_Opts["Model"] = 'VC'
-Ind_Opts['nIter'] = 2
 
 fi.IndOpts = Ind_Opts
 
@@ -57,15 +57,23 @@ print('==============================================')
 print("Turbine Powers:")
 print('----------------------------------------------')
 turbpow = fi.get_turbine_power()
-for i in range(len(turbpow)):
-    print('Turbine %d: '%i, turbpow[i]/1000)
-print('==============================================')
+# for i in range(len(turbpow)):
+#     print('Turbine %d: '%i, turbpow[i]/1000)
+# print('==============================================')
+turbine_powers = pd.DataFrame()
+for i in range(m):
+    temp = []
+    for j in range(n):
+        temp.append(turbpow[i*n+j]/1000)
+    turbine_powers['Column_'+str(i)]=temp
+print(turbine_powers)
 
 # Plot and Show
 fig, ax = plt.subplots()
-wfct.visualization.visualize_cut_plane(hor_plane, ax=ax)
+wfct.visualization.visualize_cut_plane(hor_plane, ax=ax, fig=fig, cbar=True)
 wfct.visualization.plot_turbines_with_fi(ax,fi)
 ax.set_title('Floris with Induction')
 
+print('----------------------------------------------')
 print('Time Elapsed: ', (time.time()-tstart))
 plt.show()
