@@ -23,7 +23,7 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 sep = 5 # streamwise separation for turbines (*D)
 sepy = 3 # spanwise spearation between turbines (*D)
 # Creates a turbine field with n rows and m columns
-n = 3
+n = 1
 m = 3
 
 D = fi.floris.farm.turbines[0].rotor_diameter

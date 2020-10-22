@@ -38,7 +38,7 @@ fi.calculate_wake()
 hor_plane_het_speed = fi.get_hor_plane()
 
 # Plot
-fig, axarr = plt.subplots(2, 1, figsize=(6, 10))
+fig, axarr = plt.subplots(2, 1, figsize=(6, 6))
 
 ax = axarr[0]
 im = wfct.visualization.visualize_cut_plane(hor_plane, ax, minSpeed=4, maxSpeed=9)
