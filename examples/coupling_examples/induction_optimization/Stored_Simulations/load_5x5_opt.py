@@ -28,7 +28,7 @@ maxspeed = 8.2
 
 # --- Plot and show
 fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True, figsize=(12.0, 6.0))
-wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0], minSpeed=minspeed, maxSpeed=maxspeed)
+wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0], minSpeed=minspeed, maxSpeed=maxspeed, fig=fig, cbar=True)
 axs[0].set_title("Baseline Case", fontsize=16)
 # axs[0].set_xlim(right = 2000)
 

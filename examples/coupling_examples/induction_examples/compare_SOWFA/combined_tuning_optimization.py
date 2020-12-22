@@ -18,15 +18,9 @@ from floris.tools.optimization.scipy import optimization
 tstart = time.time()
 
 """
-Optimizes wind speed for turbine powers for multiple turbine row turbine fields to match SOWFA Powers,
-then optimizes turbulence intensity to match SOWFA Powers
+Optimizes wind speed and turbulence intensity inputs into FLORIS to match SOWFA Powers.
 """
-#Specify SOWFA powers in order of increasing increasing y locations
-# sowfa_pow = np.array([1888.4,1818.6,1736.6])
-sowfa_pow = np.array([1879,793.1,1724.2,767.4,1809.1,798.3]) # 3x2
-# sowfa_pow = np.array([1877.1,786.4,784.1,1722,757.3,755.9,1807.2,791.1,787.6]) # 3x3
-# sowfa_pow = np.array([1876.9,785,776.8,820,1721.8,755.6,745.6,791.9,1807,789.7,780.5,831.6]) # 3x4
-# sowfa_pow = np.array([1808.2,778.8,766.7,807.9,817.6,1663.1,720,672,714,779.2,1906.3,802.2,800.6,857.2,900.7]) # 3x5
+
 # --- Resolution Parameters
 ny= 100
 nx=ny*4
@@ -42,6 +36,18 @@ sepy = 3 # spanwise spearation between turbines (*D)
 # Creates a turbine field with n rows and m columns
 n = 2
 m = 3
+
+#Specify SOWFA powers in order of increasing increasing y locations
+if n == 1 and m == 3:
+    sowfa_pow = np.array([1888.4,1736.6,1818.6]) # 3x1
+if n == 2 and m == 3:
+    sowfa_pow = np.array([1879,793.1,1724.2,767.4,1809.1,798.3]) # 3x2
+if n == 3 and m == 3:
+    sowfa_pow = np.array([1877.1,786.4,784.1,1722,757.3,755.9,1807.2,791.1,787.6]) # 3x3
+if n == 4 and m == 3:
+    sowfa_pow = np.array([1876.9,785,776.8,820,1721.8,755.6,745.6,791.9,1807,789.7,780.5,831.6]) # 3x4
+if n == 5 and m == 3:
+    sowfa_pow = np.array([1808.2,778.8,766.7,807.9,817.6,1663.1,720,672,714,779.2,1906.3,802.2,800.6,857.2,900.7]) # 3x5
 
 D = fi.floris.farm.turbines[0].rotor_diameter
 layout_x = []
@@ -70,11 +76,11 @@ power_initial = fi.get_turbine_power()
 speed_minval = 5
 speed_maxval = 25
 ti_multfactor = 10
-ti_minval = 0.05 * ti_multfactor # Multiply ti parameter to be on same order as windspeed
+ti_minval = 0.06 * ti_multfactor # Multiply ti parameter to be on same order as windspeed
 ti_maxval = 0.2 * ti_multfactor #0.15
 x0 = [speed_minval, ti_minval]
-# opt_options = {'maxiter': 200,'disp': True,'iprint': 1,'ftol': 1e-8,'eps': 0.02}
-opt_options = {'maxiter': 100,'disp': True,'iprint': 1,'ftol': 1e-7,'eps': 0.01}
+# opt_options = {'maxiter': 200,'disp': True,'iprint': 2,'ftol': 1e-8,'eps': 0.02}
+opt_options = {'maxiter': 100,'disp': True,'iprint': 2,'ftol': 1e-7,'eps': 0.01}
 
 sowfa_pow_frow = []
 for i in range(m):

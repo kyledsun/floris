@@ -10,8 +10,9 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import floris.tools as wfct
 from floris.utilities import Vec3
 """
-Plots horizontal plane with blockage effects. Returns velocity reduction and velocity/freestream velocity at several upstream locations.
-Returns plots of streamwise velocity and velocity normal to yawed rotor plane plots along x=0.
+Plots horizontal plane with blockage effects. 
+- Returns velocity reduction and velocity/freestream velocity at several upstream locations.
+- Returns plots of streamwise velocity and velocity normal to yawed rotor plane plots along y=0.
 """
 
 input_file="../../example_induction_input.json"
@@ -21,8 +22,23 @@ D = fi.floris.farm.turbines[0].rotor_diameter
 U0 = fi.floris.farm.initwind[0]
 yaw = fi.floris.farm.turbines[0].yaw_pos
 
+# Set paramters for iteration test
+sep = 5 # streamwise separation for turbines (*D)
+sepy = 3 # spanwise spearation between turbines (*D)
+# Creates a turbine field with n rows and m columns
+n = 5
+m = 5
+
+D = fi.floris.farm.turbines[0].rotor_diameter
+layout_x = []
+layout_y = []
+for i in range(m):
+    for j in range(n):
+        layout_x.append(j*sep*D)
+        layout_y.append(i*sepy*D)
+
 # Reinitialize flow field with new specified layout
-fi.reinitialize_flow_field(layout_array=[[0],[0]])
+fi.reinitialize_flow_field(layout_array=[layout_x,layout_y])
 
 # Read in induction options
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
@@ -49,7 +65,7 @@ df = fi.get_plane_of_points(
     x2_resolution = 1,
     x3_value = 90.0,
     x1_bounds = [-10*D,2*D],
-    x2_bounds = [0,0],
+    x2_bounds = [np.median(np.array(layout_y)),np.median(np.array(layout_y))],
     Ind_Opts=Ind_Opts
     )
 

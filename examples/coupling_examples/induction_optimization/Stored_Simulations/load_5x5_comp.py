@@ -26,11 +26,11 @@ yaw_ind_angles = data[9]
 
 # Plot and show
 fig, axs = plt.subplots(nrows = 2, ncols=1)
-wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0], minSpeed=4, maxSpeed=8.5)
+wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0], minSpeed=4, maxSpeed=8.5, fig=fig, cbar=True)
 axs[0].set_title("Baseline FLORIS Yaw Optimization")
 
 # Plot and show
-wfct.visualization.visualize_cut_plane(hor_plane2, ax=axs[1], minSpeed=4, maxSpeed=8.5)
+wfct.visualization.visualize_cut_plane(hor_plane2, ax=axs[1], minSpeed=4, maxSpeed=8.5, fig=fig, cbar=True)
 axs[1].set_title("FLORIS With Blockage Effect Yaw Optimization")
 fig.tight_layout()
 

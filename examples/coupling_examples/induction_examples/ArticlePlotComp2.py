@@ -207,11 +207,13 @@ cs = ax.contour(
 
 wfct.visualization.plot_turbines_with_fi(ax,fi)
 cb=fig.colorbar(im, fraction = 0.024, pad = 0.04)
+cb.ax.set_ylabel('Normalized Velocity',fontsize=14, rotation = 270,labelpad=18)
 cb.ax.tick_params(labelsize='large')
 ax.set_title('Vortex Cylinder Velocity Field', fontsize = 22)
 ax.set_xlabel('x [-]', fontsize = 18)
 ax.set_ylabel('y [-]', fontsize = 18)
 ax.set_aspect('equal')
+fig.tight_layout()
 # fig.savefig('../../../../../../Documents/Blockage Effect/Induction Velocity Field_2.0/Yawed_Decay_Ct_2/'+str(m)+'x'+str(n)+'induction_velocity_countour_yaw.png')
 
 print('gamma_t: ', fi.floris.farm.turbines[0].gamma_t[0])

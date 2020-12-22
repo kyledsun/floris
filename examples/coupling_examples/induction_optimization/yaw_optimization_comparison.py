@@ -17,16 +17,16 @@ Compares the optimization of a wind farm with and without modelling blockage eff
 induction zone of turbines.
 """
 
-input_file="../OptLayout_2x3.json"
+input_file="OptLayout_2x3.json"
 # Initialize the floris interface
 fi = wfct.floris_interface.FlorisInterface(input_file)
 
 # Set paramters for iteration test
 sep = 5 # streamwise separation for turbines (*D)
 sepy = 3 # spanwise spearation between turbines (*D)
-# Creates a turbine field with n rows and m columns
-n = 5
+# Creates a turbine field with m columns and n rows
 m = 1
+n = 5
 
 D = fi.floris.farm.turbines[0].rotor_diameter
 layout_x = []
@@ -63,7 +63,7 @@ hor_plane = fi.get_hor_plane(x_resolution=400, y_resolution=100)
 
 # Plot and show
 fig, axs = plt.subplots(nrows = 2, ncols=1)
-wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0], minSpeed=4, maxSpeed=8.5)
+wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0], minSpeed=4, maxSpeed=8.5,fig=fig,cbar=True)
 axs[0].set_title("Baseline")
 
 base_power = fi.get_farm_power()
@@ -75,9 +75,6 @@ Ind_Opts = fi_ind.floris.farm.flow_field.Ind_Opts
 
 # Sets induction to true
 Ind_Opts['induction'] = True
-Ind_Opts['Model'] = 'VC'
-Ind_Opts['nIter'] = 2
-# fi_ind.floris.farm.flow_field.Ind_Opts = Ind_Opts
 fi_ind.IndOpts = Ind_Opts
 
 fi_ind.calculate_wake()
@@ -95,17 +92,17 @@ fi_ind.calculate_wake(yaw_angles=yaw_ind_angles)
 hor_plane2 = fi_ind.get_hor_plane(x_resolution=400, y_resolution=100)
 
 # Plot and show
-wfct.visualization.visualize_cut_plane(hor_plane2, ax=axs[1], minSpeed=4, maxSpeed=8.5)
+wfct.visualization.visualize_cut_plane(hor_plane2, ax=axs[1], minSpeed=4, maxSpeed=8.5,fig=fig,cbar=True)
 axs[1].set_title("FLORIS With Blockage Effects")
 fig.tight_layout()
 
 ind_power = fi_ind.get_farm_power()
 
 print("================================================================")
-print("Farm Powers: ")
+print("Yaw Optimized Farm Powers: ")
 print("----------------------------------------------------------------")
-print('No Induction Power:', base_power)
-print('Induction Power:', ind_power)
+print('Baseline Power:', base_power)
+print('Blockage Power:', ind_power)
 
 print("================================================================")
 print("Total Power Change = %.1f%%" %(100.0 * (ind_power - base_power) / base_power))
@@ -148,16 +145,14 @@ for i in range(len(yaw_angles)):
 
 fig,ax = plt.subplots()
 x = np.arange(len(yaw_angles))
-ax.scatter(x,yaw_angles,zorder=3)
-ax.scatter(x,yaw_ind_angles,marker='s',zorder=2)
-ax.plot(x,yaw_angles,zorder=1)
-ax.plot(x,yaw_ind_angles,zorder=1)
+ax.plot(x,yaw_angles,marker='o',label='Baseline')
+ax.plot(x,yaw_ind_angles,marker='o',label='Blockage')
 ax.set_xticks(x)
 ax.set_xticklabels(['T'+str(i) for i in x],fontsize=14)
 ax.tick_params(axis='y',labelsize=14)
 ax.set_ylabel('Yaw Angles (deg)',fontsize=16)
 ax.set_xlabel('Turbine',fontsize=16)
-ax.legend(['Baseline','Blockage'],loc = 'lower left',fontsize=14)
+ax.legend(loc = 'lower left',fontsize=14)
 fig.suptitle('%dx%d Yaw Optimized Turbine Yaw Angles' %(m,n),fontsize=20)
 fig.tight_layout(rect=(0,0,1,0.93))
 

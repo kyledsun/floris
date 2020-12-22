@@ -15,16 +15,16 @@ induction zone of turbines.
 """
 
 Readouts = False
-input_file="../OptLayout_2x3.json"
+input_file="../example_induction_input.json"
 # Initialize the floris interface
 fi = wfct.floris_interface.FlorisInterface(input_file)
 
 # Set paramters for iteration test
 sep = 5 # streamwise separation for turbines (*D)
 sepy = 3 # spanwise spearation between turbines (*D)
-# Creates a turbine field with n rows and m columns
-n = 3
+# Creates a turbine field with m columns and n rows
 m = 3
+n = 5
 
 D = fi.floris.farm.turbines[0].rotor_diameter
 layout_x = []
@@ -35,7 +35,12 @@ for i in range(m):
         layout_y.append(i*sepy*D)
 
 # Reinitialize flow field with new specified layout
-fi.reinitialize_flow_field(layout_array=[layout_x,layout_y])
+fi.reinitialize_flow_field(layout_array=[layout_x,layout_y], wind_speed = 8)
+
+# Sets induction to false for baseline FLORIS
+Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
+Ind_Opts['induction'] = False
+fi.floris.farm.flow_field.Ind_Opts = Ind_Opts
 
 # Calculate wake and get horizontal plane at turbine height for yaw optimized farm field
 fi.calculate_wake()

@@ -19,7 +19,7 @@ from floris.utilities import Vec3
 
 # Set paramters for iteration test
 itertest = [1,2] # will run tests using each iteration (only accepts length of two)
-input_file="../OptLayout_2x3.json"
+input_file="../../example_induction_input.json"
 sep = 5 # streamwise separation for turbines (*D)
 sepy = 3 # spanwise spearation between turbines (*D)
 # Creates a turbine field with n rows and m columns
@@ -32,6 +32,7 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 # Sets induction to true
 Ind_Opts['induction'] = True
+Ind_Opts['Model'] = 'VC'
 Ind_Opts['nIter'] = itertest[0]
 
 fi.floris.farm.flow_field.Ind_Opts = Ind_Opts
@@ -107,7 +108,7 @@ init_powers = fi.get_turbine_power()
 opt_powers = fi2.get_turbine_power()
 for i in range(len(init_powers)):
     pow_diff = 100*abs(init_powers[i]-opt_powers[i])/((init_powers[i]+opt_powers[i])/2)
-    print('Turbine %d: \t%.2f\t%.2f\t%.1f%%' %(i, init_powers[i],opt_powers[i],pow_diff))
+    print('Turbine %d: \t%.2f\t%.2f\t%.2f%%' %(i, init_powers[i],opt_powers[i],pow_diff))
 
 print("================================================================")
 print('Velocities Seen By Each Turbine:')
@@ -123,6 +124,6 @@ for turbine in fi2.floris.farm.turbine_map.turbines:
 
 for i in range(len(turbine_vel)):
     vel_diff = 100*abs(turbine_vel[i]-indTurbine_vel[i])/((turbine_vel[i]+indTurbine_vel[i])/2)
-    print('Turbine %d: \t%.2f\t\t%.2f\t\t%.1f%%' %(i,turbine_vel[i],indTurbine_vel[i],vel_diff))
+    print('Turbine %d: \t%.4f\t\t%.4f\t\t%.2f%%' %(i,turbine_vel[i],indTurbine_vel[i],vel_diff))
 
 plt.show()

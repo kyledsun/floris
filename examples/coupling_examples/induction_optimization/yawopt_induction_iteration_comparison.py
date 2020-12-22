@@ -16,16 +16,14 @@ Tests the difference in yaw optimized angles between varying instances of induct
 
 itertest = [2,4] # will run tests using each iteration (only accepts length of two)
 
-input_file="../OptLayout_2x3.json"
+input_file="OptLayout_2x3.json"
 # Initialize the floris interface
 fi = wfct.floris_interface.FlorisInterface(input_file)
 
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 # Sets induction to true
 Ind_Opts['induction'] = True
-Ind_Opts['Model'] = 'VC'
 Ind_Opts['nIter'] = itertest[0]
-
 fi.floris.farm.flow_field.Ind_Opts = Ind_Opts
 
 print('%d Iterations Ind Opts: ' %itertest[0], fi.floris.farm.flow_field.Ind_Opts)
@@ -81,7 +79,6 @@ Ind_Opts = fi2.floris.farm.flow_field.Ind_Opts
 
 # Increase the number of iterations
 Ind_Opts['nIter'] = itertest[1]
-
 fi2.floris.farm.flow_field.Ind_Opts = Ind_Opts
 
 print('%d Iterations Ind_Opts: '%itertest[1], fi2.floris.farm.flow_field.Ind_Opts)

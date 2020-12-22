@@ -25,7 +25,7 @@ levelsLines=np.sort([1.05,1.0,0.99,0.98,0.95,0.9,0.5])
 ny=100 # 200
 nx=ny*4
 
-input_file="../OptLayout_2x3.json"
+input_file="OptLayout_2x3.json"
 input_dict=None
 D=126
 resolution=Vec3(nx, ny, 2)

@@ -31,9 +31,9 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 # Set paramters for iteration test
 sep = 5 # streamwise separation for turbines (*D)
 sepy = 3 # spanwise spearation between turbines (*D)
-# Creates a turbine field with n rows and m columns
-n = 1
+# Creates a turbine field with m columns and n rows
 m = 1
+n = 5
 
 D = fi.floris.farm.turbines[0].rotor_diameter
 layout_x = []
@@ -51,13 +51,9 @@ bounds=[-4*D,16*D,-2*D-10,5*D+10,89,90] # xmin xmax .. zmin zmax
 # Make a copy for optimization instance
 fi_opt = copy.deepcopy(fi)
 
-# Read in induction options from input file
+# Read in induction options from input file and set induction to True
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
-
 Ind_Opts['induction'] = True
-Ind_Opts['Model'] = 'VC'
-Ind_Opts['nIter'] = 2
-
 fi.IndOpts = Ind_Opts
 fi_opt.IndOpts = Ind_Opts
 
@@ -114,15 +110,23 @@ maxspeed = 8.2
 
 # --- Plot and show
 fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True, figsize=(12.0, 6.0))
-wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0], minSpeed=minspeed, maxSpeed=maxspeed)
+wfct.visualization.visualize_cut_plane(hor_plane, ax=axs[0], minSpeed=minspeed, maxSpeed=maxspeed,fig=fig,cbar=True)
 wfct.visualization.plot_turbines_with_fi(axs[0],fi)
-axs[0].set_title("Baseline Case", fontsize=16)
+axs[0].set_title("Non-Yawed", fontsize=16)
 # axs[0].set_xlim(right = 2000)
 
 wfct.visualization.visualize_cut_plane(hor_plane_opt, ax=axs[1], minSpeed=minspeed, maxSpeed=maxspeed,fig=fig,cbar=True)
 wfct.visualization.plot_turbines_with_fi(axs[1],fi_opt)
 axs[1].set_title("Optimized Case", fontsize=16)
 # axs[1].set_xlim(right = 2000)
+
+fig,ax = plt.subplots()
+ax.plot(np.arange(len(yaw_angles)),yaw_angles)
+ax.scatter(np.arange(len(yaw_angles)),yaw_angles)
+ax.set_xlabel('Turbine',fontsize=14)
+ax.set_ylabel('Yaw Angles (deg)',fontsize=14)
+ax.set_title('Optimized Yaw Angles',fontsize=16)
+fig.tight_layout()
 
 print("==========================================")
 print("Induction: ", Ind_Opts['induction'])
@@ -141,27 +145,27 @@ print("Total Power Gain = %.1f%%" %(100.0 * (power_opt - power_initial) / power_
 print("==========================================")
 print('Turbine Powers:')
 print("------------------------------------------")
-print('\t\tBaseline\tOptimized')
+print('\t\tNon Yawed\tOptimized')
 print("------------------------------------------")
 init_powers = fi.get_turbine_power()
 opt_powers = fi_opt.get_turbine_power()
 for i in range(len(init_powers)):
     print('Turbine %d: \t%.2f\t%.2f' %(i, init_powers[i],opt_powers[i]))
 
-print("==========================================")
-print('Velocities Seen By Each Turbine:')
-print("------------------------------------------")
-print('\t\tBaseline\tOptimized')
-print("------------------------------------------")
-turbine_vel = []
-optTurbine_vel = []
-for turbine in fi.floris.farm.turbine_map.turbines:
-    turbine_vel.append(turbine.average_velocity)
-for turbine in fi_opt.floris.farm.turbine_map.turbines:
-    optTurbine_vel.append(turbine.average_velocity)
+# print("==========================================")
+# print('Velocities Seen By Each Turbine:')
+# print("------------------------------------------")
+# print('\t\tBaseline\tOptimized')
+# print("------------------------------------------")
+# turbine_vel = []
+# optTurbine_vel = []
+# for turbine in fi.floris.farm.turbine_map.turbines:
+#     turbine_vel.append(turbine.average_velocity)
+# for turbine in fi_opt.floris.farm.turbine_map.turbines:
+#     optTurbine_vel.append(turbine.average_velocity)
 
-for i in range(len(turbine_vel)):
-    print('Turbine %d: \t%.2f\t\t%.2f' %(i,turbine_vel[i],optTurbine_vel[i]))
+# for i in range(len(turbine_vel)):
+#     print('Turbine %d: \t%.2f\t\t%.2f' %(i,turbine_vel[i],optTurbine_vel[i]))
 
 print(time.strftime("%H:%M:%S", time.gmtime(time.time()-tstart)))
 

@@ -19,7 +19,7 @@ ny= 100
 nx=ny*4
 resolution=Vec3(nx, ny, 2)
 
-crossplot = True
+crossplot = False
 vertplot = False
 
 minspeed = None #2
@@ -33,8 +33,8 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 sep = 5 # streamwise separation for turbines (*D)
 sepy = 3 # spanwise spearation between turbines (*D)
 # Creates a turbine field with n rows and m columns
-n = 3
-m = 2
+n = 1
+m = 1
 
 D = fi.floris.farm.turbines[0].rotor_diameter
 layout_x = []
@@ -50,7 +50,6 @@ fi.reinitialize_flow_field(layout_array=[layout_x,layout_y])
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 Ind_Opts['Model'] ='VC'
 Ind_Opts['nIter'] = 2
-Ind_Opts['Ground'] = True
 fi.IndOpts = Ind_Opts
 
 # Calculate wake
@@ -116,23 +115,24 @@ ax.set_ylabel('y [-]', fontsize = 16)
 ax.set_xlim([-250,200])
 ax.set_ylim([-150,150])
 # ===============================================================================================
+levelsLines=np.arange(0.97,1.01,0.0075) * fi.floris.farm.wind_map.input_speed[0]
 
 fig, ax = plt.subplots(nrows = 3, sharex=True, sharey=True)
 # Plot flow field without induction
 wfct.visualization.visualize_cut_plane(hor_plane3, ax=ax[0], minSpeed = minspeed, maxSpeed = maxspeed, fig=fig, cbar=True)
 wfct.visualization.plot_turbines_with_fi(ax[0],fi)
-ax[0].set_title('Flow Field without Induction', fontsize=14)
+ax[0].set_title('FLORIS Wake Model', fontsize=14)
 
 # Plot induction
 wfct.visualization.visualize_cut_plane(hor_plane2, ax=ax[1], minSpeed = minspeed, maxSpeed = maxspeed, fig=fig, cbar=True)
 wfct.visualization.plot_turbines_with_fi(ax[1],fi)
-ax[1].set_title('Induction Only', fontsize=14)
+ax[1].set_title('Vortex Cylinder Blockage Model', fontsize=14)
 fig.tight_layout()
 
 # Plot flow field with induction
-wfct.visualization.visualize_cut_plane(hor_plane, ax=ax[2], minSpeed = minspeed, maxSpeed = maxspeed, fig=fig, cbar=True)
+wfct.visualization.visualize_cut_plane(hor_plane, ax=ax[2], minSpeed = minspeed, maxSpeed = maxspeed, fig=fig, cbar=True, levels=levelsLines)
 wfct.visualization.plot_turbines_with_fi(ax[2],fi)
-ax[2].set_title('Flow Field with Induction', fontsize=14)
+ax[2].set_title('FLORIS with Blockages', fontsize=14)
 if crossplot:
     for i in x_loc:
         ax[2].plot(np.ones(40)*i,np.linspace(hor_plane.df.x2.min(),hor_plane.df.x2.max(),40),linewidth = 0.5)

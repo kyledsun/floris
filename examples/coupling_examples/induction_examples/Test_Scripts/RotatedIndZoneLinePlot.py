@@ -10,7 +10,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import floris.tools as wfct
 from floris.utilities import Vec3
 """
-Plots horizontal plane with blockage effects. Returns farm and turbine powers.
+Plots velocity normal to yawed rotor plane along Y = 0 var various layouts.
 """
 
 input_file="../../example_induction_input.json"
