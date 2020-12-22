@@ -128,7 +128,7 @@
             "blend": false,
             "Rfact": 1,
             "GammaFact": 1,
-            "Model": "VCFF",
+            "Model": "VC",
             "Ground": true,
             "nIter": 2,
             "R_far_field": 8,
