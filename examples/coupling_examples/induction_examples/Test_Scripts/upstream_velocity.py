@@ -64,7 +64,6 @@ hplane_base = hor_plane_base.df[hor_plane_base.df.x1 == find_nearest(hor_plane_b
 # Set induction to true to model blockage effect
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 Ind_Opts['induction']=True
-Ind_Opts["Model"] = 'VC'
 fi.IndOpts = Ind_Opts
 
 # Creates list of turbine layouts with m columns and n rows

@@ -66,7 +66,6 @@ fi.reinitialize_flow_field(layout_array=[layout_x,layout_y], wind_speed=list(sam
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 # Set induction to true to model blockage effect
 Ind_Opts['induction']=False
-Ind_Opts["Model"] = 'VC'
 fi.IndOpts = Ind_Opts
 
 # Calculate wake

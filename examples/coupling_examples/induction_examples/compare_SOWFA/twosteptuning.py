@@ -28,9 +28,7 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 
 # Read in induction options from input file
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
-Ind_Opts['induction'] = False
-Ind_Opts['Model'] = 'VC'
-Ind_Opts['nIter'] = 2
+Ind_Opts['induction'] = True
 fi.IndOpts = Ind_Opts
 
 # Set paramters for iteration test

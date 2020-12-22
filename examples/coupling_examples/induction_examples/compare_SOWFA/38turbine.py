@@ -32,7 +32,6 @@ fi.reinitialize_flow_field(layout_array=[layout_x,layout_y],wind_speed=8.39,turb
 # Read in induction options
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 Ind_Opts['induction']=True
-Ind_Opts["Model"] = 'VC'
 fi.IndOpts = Ind_Opts
 
 # Calculate wake

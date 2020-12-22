@@ -23,7 +23,6 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 # Set induction to true to model blockage effect
 Ind_Opts['induction']=True
-Ind_Opts["Model"] = 'VC'
 fi.IndOpts = Ind_Opts
 
 # Set paramters for iteration test

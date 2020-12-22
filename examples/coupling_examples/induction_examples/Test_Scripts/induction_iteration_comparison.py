@@ -32,7 +32,6 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 # Sets induction to true
 Ind_Opts['induction'] = True
-Ind_Opts['Model'] = 'VC'
 Ind_Opts['nIter'] = itertest[0]
 
 fi.floris.farm.flow_field.Ind_Opts = Ind_Opts

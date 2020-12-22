@@ -70,8 +70,6 @@ fi.reinitialize_flow_field(layout_array=[layout_x,layout_y], wind_speed=list(sam
 # Read in induction options from input file
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 Ind_Opts['induction'] = False
-Ind_Opts['Model'] = 'VC'
-Ind_Opts['nIter'] = 2
 fi.IndOpts = Ind_Opts
 
 # Store value for total wind farm power

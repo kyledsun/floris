@@ -47,11 +47,6 @@ for i in range(m):
 # Reinitialize flow field with new specified layout
 fi.reinitialize_flow_field(layout_array=[layout_x,layout_y])
 
-Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
-Ind_Opts['Model'] ='VC'
-Ind_Opts['nIter'] = 2
-fi.IndOpts = Ind_Opts
-
 # Calculate wake
 fi.calculate_wake()
 # print('Ind Opts:', fi.IndOpts)

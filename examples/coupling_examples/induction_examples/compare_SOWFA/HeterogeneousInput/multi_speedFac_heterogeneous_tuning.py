@@ -30,8 +30,6 @@ fi = wfct.floris_interface.FlorisInterface(input_file)
 # Read in induction options from input file
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 Ind_Opts['induction'] = True
-Ind_Opts['Model'] = 'VC'
-Ind_Opts['nIter'] = 2
 fi.IndOpts = Ind_Opts
 
 # Read in input velocities from 3x1 SOWFA case

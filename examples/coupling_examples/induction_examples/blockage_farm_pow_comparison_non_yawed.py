@@ -60,8 +60,6 @@ for i in range(len(n)):
     # Read in induction options from flow field class
     Ind_Opts = fi_ind.floris.farm.flow_field.Ind_Opts
     Ind_Opts['induction'] = True
-    Ind_Opts['Model'] = 'VC'
-    Ind_Opts['nIter'] = 2
     fi_ind.floris.farm.flow_field.Ind_Opts = Ind_Opts
 
     # Calculate wake and get horizontal plane at turbine height for yaw optimized farm field

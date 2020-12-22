@@ -44,9 +44,6 @@ fi.reinitialize_flow_field(layout_array=[layout_x,layout_y])
 Ind_Opts = fi.floris.farm.flow_field.Ind_Opts
 # Set induction to true to model blockage effect
 Ind_Opts['induction']=True
-Ind_Opts["Model"] = 'VC'
-Ind_Opts['nIter'] = 2
-
 fi.IndOpts = Ind_Opts
 
 fi.calculate_wake(Ind_Opts=Ind_Opts)

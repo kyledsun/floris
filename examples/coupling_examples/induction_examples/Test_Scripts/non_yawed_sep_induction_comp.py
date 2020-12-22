@@ -85,8 +85,6 @@ for s in range(len(sep)):
     fi_ind = copy.deepcopy(fi)
     Ind_Opts2 = copy.deepcopy(Ind_Opts)
     Ind_Opts2['induction'] = True
-    Ind_Opts2['Model'] = 'VC'
-    Ind_Opts['nIter'] = 2
     fi_ind.IndOpts = Ind_Opts2
 
     fi.calculate_wake()
