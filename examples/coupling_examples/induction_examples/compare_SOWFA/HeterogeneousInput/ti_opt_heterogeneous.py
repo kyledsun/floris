@@ -22,7 +22,7 @@ Optimizes turbulence intensity for FLORIS turbine powers to match SOWFA Powers u
 SOWFA wind velocities to specify heterogenous input windspeeds into FLORIS.
 """
 
-InputSpeeds = pd.read_csv('../../../../sowfa_comparisons/SowfaInputVel.csv')
+InputSpeeds = pd.read_csv('../../../../sowfa_comparisons/SowfaVelocities/SowfaInputVel3x1.csv')
 
 def inSpeeds(numpoints,df):
     locations = np.array([float(i) for i in df[df.NumPoints == numpoints].Locations.values[0].strip('][').split(', ')]) - 320

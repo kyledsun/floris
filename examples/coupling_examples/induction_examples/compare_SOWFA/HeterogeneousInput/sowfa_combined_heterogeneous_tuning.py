@@ -24,7 +24,7 @@ into FLORIS and optimizes TI to tune FLORIS to downstream SOWFA powers.
 """
 
 # Read in upstream wind velocities from SOWFA case
-InputSpeeds = pd.read_csv('../../../../sowfa_comparisons/SowfaInputVel.csv')
+InputSpeeds = pd.read_csv('../../../../sowfa_comparisons/SowfaVelocities/SowfaInputVel3x1.csv')
 def inSpeeds(numpoints,df):
     locations = np.array([float(i) for i in df[df.NumPoints == numpoints].Locations.values[0].strip('][').split(', ')]) - 320
     velocities = np.array([float(i) for i in df[df.NumPoints == numpoints].Velocities.values[0].strip('][').split(', ')])
