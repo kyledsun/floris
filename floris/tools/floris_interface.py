@@ -70,7 +70,6 @@ class FlorisInterface(LoggerBase):
         self.input_file = input_file
         self.floris = Floris(input_file=input_file, input_dict=input_dict)
         self.IndOpts = self.floris.farm.flow_field.Ind_Opts
-        # print('------------------------------',IndOpts)
 
     def calculate_wake(
         self, yaw_angles=None, no_wake=False, points=None, track_n_upstream_wakes=False, Ind_Opts = None
@@ -92,8 +91,8 @@ class FlorisInterface(LoggerBase):
                 track of the number of upstream wakes a turbine is
                 experiencing. Defaults to *False*.
             Ind_Opts (dict, optional): Dictionary of vortex cylinder options
-                to be applied to the induction zone of the velocity field as
-                a result of the blockage effect.
+                to be applied to the induction zone of the velocity field to
+                simulate blockage effects. Defaults to None.
 
         """
         if yaw_angles is not None:
@@ -102,7 +101,6 @@ class FlorisInterface(LoggerBase):
         if Ind_Opts is None:
             Ind_Opts = self.IndOpts
         # else: self.IndOpts = Ind_Opts
-        # print("Ind_Opts calculate wake: ", Ind_Opts)
 
         self.floris.farm.flow_field.calculate_wake(
             no_wake=no_wake,
@@ -291,12 +289,13 @@ class FlorisInterface(LoggerBase):
                 Defaults to None.
             x2_bounds (tuple, optional): Limits of output array (in m).
                 Defaults to None.
-            Ind_Opts (dictionary, optional): Dictionary of vortex 
-                cylinder options to be applied to the induction zone 
-                of the velocity field as a result of the blockage effect.
+            Ind_Opts (dict, optional): Dictionary of vortex cylinder options
+                to be applied to the induction zone of the velocity field to
+                simulate blockage effects. Defaults to None.
 
         Returns:
-            :py:class:`pandas.DataFrame`: containing values of x1, x2, u, v, w
+            :py:class:`pandas.DataFrame`: containing values of x1, x2, u, v, w,
+            u_ind
         """
         # Get a copy for the flow field so don't change underlying grid points
         flow_field = copy.deepcopy(self.floris.farm.flow_field)
@@ -360,7 +359,6 @@ class FlorisInterface(LoggerBase):
         if Ind_Opts is None:
             Ind_Opts = self.IndOpts
         # else: self.IndOpts = Ind_Opts
-        # print("Ind_Opts get_plane_of_points: ", Ind_Opts)
 
         # Recalculate wake with these points
         flow_field.calculate_wake(points=points,Ind_Opts=Ind_Opts)
@@ -392,8 +390,8 @@ class FlorisInterface(LoggerBase):
                     "v": v_flat,
                     "w": w_flat,
                     "u_ind": u_ind_flat,
-                    "v_ind": v_ind_flat,
-                    "w_ind": w_ind_flat
+                    # "v_ind": v_ind_flat,
+                    # "w_ind": w_ind_flat
                 }
             )
         if normal_vector == "x":
@@ -406,8 +404,8 @@ class FlorisInterface(LoggerBase):
                     "v": v_flat,
                     "w": w_flat,
                     "u_ind": u_ind_flat,
-                    "v_ind": v_ind_flat,
-                    "w_ind": w_ind_flat
+                    # "v_ind": v_ind_flat,
+                    # "w_ind": w_ind_flat
                 }
             )
         if normal_vector == "y":
@@ -420,8 +418,8 @@ class FlorisInterface(LoggerBase):
                     "v": v_flat,
                     "w": w_flat,
                     "u_ind": u_ind_flat,
-                    "v_ind": v_ind_flat,
-                    "w_ind": w_ind_flat
+                    # "v_ind": v_ind_flat,
+                    # "w_ind": w_ind_flat
                 }
             )
 
@@ -441,7 +439,7 @@ class FlorisInterface(LoggerBase):
         # Return the dataframe
         return df
 
-    def get_set_of_points(self, x_points, y_points, z_points):
+    def get_set_of_points(self, x_points, y_points, z_points, Ind_Opts=None):
         """
         Calculates velocity values through the
         :py:meth:`~.FlowField.calculate_wake` method at points specified by
@@ -451,9 +449,13 @@ class FlorisInterface(LoggerBase):
             x_points (float): X-locations to get velocity values at.
             y_points (float): Y-locations to get velocity values at.
             z_points (float): Z-locations to get velocity values at.
+            Ind_Opts (dict, optional): Dictionary of vortex cylinder options
+                to be applied to the induction zone of the velocity field to
+                simulate blockage effects. Defaults to None.
 
         Returns:
-            :py:class:`pandas.DataFrame`: containing values of x, y, z, u, v, w
+            :py:class:`pandas.DataFrame`: containing values of x, y, z, u, v, w,
+            u_ind
         """
         # Get a copy for the flow field so don't change underlying grid points
         flow_field = copy.deepcopy(self.floris.farm.flow_field)
@@ -470,8 +472,12 @@ class FlorisInterface(LoggerBase):
         # Set up points matrix
         points = np.row_stack((x_points, y_points, z_points))
 
+        if Ind_Opts is None:
+            Ind_Opts = self.IndOpts
+        # else: self.IndOpts = Ind_Opts
+
         # Recalculate wake with these points
-        flow_field.calculate_wake(points=points)
+        flow_field.calculate_wake(points=points, Ind_Opts=Ind_Opts)
 
         # Get results vectors
         x_flat = flow_field.x.flatten()
@@ -481,6 +487,15 @@ class FlorisInterface(LoggerBase):
         v_flat = flow_field.v.flatten()
         w_flat = flow_field.w.flatten()
 
+        if Ind_Opts['induction']:
+            u_ind_flat = flow_field.u_induct.flatten()
+            v_ind_flat = flow_field.v_induct.flatten()
+            w_ind_flat = flow_field.w_induct.flatten()
+        else: 
+            u_ind_flat = np.zeros(np.shape(u_flat))
+            v_ind_flat = np.zeros(np.shape(u_flat))
+            w_ind_flat = np.zeros(np.shape(u_flat))
+
         df = pd.DataFrame(
             {
                 "x": x_flat,
@@ -489,6 +504,9 @@ class FlorisInterface(LoggerBase):
                 "u": u_flat,
                 "v": v_flat,
                 "w": w_flat,
+                "u_ind": u_ind_flat,
+                # "v_ind": v_ind_flat,
+                # "w_ind": w_ind_flat,
             }
         )
 
@@ -527,13 +545,13 @@ class FlorisInterface(LoggerBase):
                 Defaults to None.
             y_bounds (tuple, optional): Limits of output array (in m).
                 Defaults to None.
-            Ind_Opts (dictionary, optional): Dictionary of vortex 
-                cylinder options to be applied to the induction zone 
-                of the velocity field as a result of the blockage effect.
+            Ind_Opts (dict, optional): Dictionary of vortex cylinder options
+                to be applied to the induction zone of the velocity field to
+                simulate blockage effects. Defaults to None.
 
         Returns:
             :py:class:`~.tools.cut_plane.CutPlane`: containing values
-            of x, y, u, v, w
+            of x, y, u, v, w, u_ind
         """
         # If height not provided, use the hub height
         if height is None:
@@ -562,7 +580,7 @@ class FlorisInterface(LoggerBase):
         return CutPlane(df)
 
     def get_cross_plane(
-        self, x_loc, y_resolution=200, z_resolution=200, y_bounds=None, z_bounds=None
+        self, x_loc, y_resolution=200, z_resolution=200, y_bounds=None, z_bounds=None, Ind_Opts=None
     ):
         """
         Shortcut method to instantiate a :py:class:`~.tools.cut_plane.CutPlane`
@@ -580,10 +598,13 @@ class FlorisInterface(LoggerBase):
                 Defaults to None.
             z_bounds (tuple, optional): limits of output array (in m).
                 Defaults to None.
+            Ind_Opts (dict, optional): Dictionary of vortex cylinder options
+                to be applied to the induction zone of the velocity field to
+                simulate blockage effects. Defaults to None.
 
         Returns:
             :py:class:`~.tools.cut_plane.CutPlane`: containing values
-            of y, z, u, v, w
+            of y, z, u, v, w, u_ind
         """
         # Get the points of data in a dataframe
         df = self.get_plane_of_points(
@@ -593,13 +614,14 @@ class FlorisInterface(LoggerBase):
             x3_value=x_loc,
             x1_bounds=y_bounds,
             x2_bounds=z_bounds,
+            Ind_Opts=Ind_Opts,
         )
 
         # Compute and return the cutplane
         return CutPlane(df)
 
     def get_y_plane(
-        self, y_loc, x_resolution=200, z_resolution=200, x_bounds=None, z_bounds=None
+        self, y_loc, x_resolution=200, z_resolution=200, x_bounds=None, z_bounds=None, Ind_Opts=None
     ):
         """
         Shortcut method to instantiate a :py:class:`~.tools.cut_plane.CutPlane`
@@ -617,10 +639,13 @@ class FlorisInterface(LoggerBase):
                 Defaults to None.
             z_bounds (tuple, optional): limits of output array (in m).
                 Defaults to None.
+            Ind_Opts (dict, optional): Dictionary of vortex cylinder options
+                to be applied to the induction zone of the velocity field to
+                simulate blockage effects. Defaults to None.
 
         Returns:
             :py:class:`~.tools.cut_plane.CutPlane`: containing values
-            of x, z, u, v, w
+            of x, z, u, v, w, u_ind
         """
         # Get the points of data in a dataframe
         df = self.get_plane_of_points(
@@ -630,6 +655,7 @@ class FlorisInterface(LoggerBase):
             x3_value=y_loc,
             x1_bounds=x_bounds,
             x2_bounds=z_bounds,
+            Ind_Opts=Ind_Opts,
         )
 
         # Compute and return the cutplane
@@ -655,8 +681,8 @@ class FlorisInterface(LoggerBase):
                 with respect to initial flow field velocity to show relative
                 velocity deficit (%). Defaults to *False*.
             Ind_Opts (dict, optional): Dictionary of vortex cylinder options
-                to be applied to the induction zone of the velocity field as
-                a result of the blockage effect.
+                to be applied to the induction zone of the velocity field to
+                simulate blockage effects. Defaults to None.
 
         Returns:
             :py:class:`~.tools.flow_data.FlowData`: FlowData object
@@ -708,7 +734,6 @@ class FlorisInterface(LoggerBase):
         if Ind_Opts is None:
             Ind_Opts = self.IndOpts
         # else: self.IndOpts = Ind_Opts
-        # print("Ind_Opts get_flow_data: ", Ind_Opts)
 
         flow_field.calculate_wake(Ind_Opts=Ind_Opts)
 

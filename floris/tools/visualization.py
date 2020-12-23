@@ -173,11 +173,11 @@ def visualize_cut_plane(
 
     # Plot colorbars for velocity (Requires that fig be read in)
     if cbar:
-        # cb = fig.colorbar(im, ax=ax, fraction = 0.024, pad = 0.04)
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right",size='2%',pad = 0.07)
         cb = fig.colorbar(im, cax=cax)
-        # cb.ax.tick_params(labelsize='large')
+        cax.set_ylabel('Wind Speed [m/s]', rotation = 270,labelpad=14)
+        # cb.ax.tick_params(labelsize=14)
 
     # Add line contour
     line_contour_cut_plane(

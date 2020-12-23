@@ -20,61 +20,7 @@ import copy
 
 from ..utilities import Vec3, cosd, sind, tand
 
-#import wiz
 from floris.simulation.wake_vortex.Solver import Ct_const_cutoff
-
-import time
-def pretty_time(t):
-    # fPrettyTime: returns a 6-characters string corresponding to the input time in seconds.
-    #   fPrettyTime(612)=='10m12s'
-    # AUTHOR: E. Branlard
-    if(t<0):
-        s='------';
-    elif (t<1) :
-        c=np.floor(t*100);
-        s='{:2d}.{:02d}s'.format(0,int(c))
-    elif(t<60) :
-        s=np.floor(t);
-        c=np.floor((t-s)*100);
-        s='{:2d}.{:02d}s'.format(int(s),int(c))
-    elif(t<3600) :
-        m=np.floor(t/60);
-        s=np.mod( np.floor(t), 60);
-        s='{:2d}m{:02d}s'.format(int(m),int(s))
-    elif(t<86400) :
-        h=np.floor(t/3600);
-        m=np.floor(( np.mod( np.floor(t) , 3600))/60);
-        s='{:2d}h{:02d}m'.format(int(h),int(m))
-    elif(t<8553600) : #below 3month
-        d=np.floor(t/86400);
-        h=np.floor( np.mod(np.floor(t), 86400)/3600);
-        s='{:2d}d{:02d}h'.format(int(d),int(h))
-    elif(t<31536000):
-        m=t/(3600*24*30.5);
-        s='{:4.1f}mo'.format(m)
-        #s='+3mon.';
-    else:
-        y=t/(3600*24*365.25);
-        s='{:.1f}y'.format(y)
-    return s
-
-class Timer(object):
-    """ Time a set of commands, as a context manager
-    with Timer('A name'):
-        cmd1
-        cmd2
-    """
-    def __init__(self, name=None):
-        self.name = name
-
-    def __enter__(self):
-        self.tstart = time.time()
-
-    def __exit__(self, type, value, traceback):
-        print('[TIME] ',end='')
-        if self.name:
-            print('{:31s}'.format(self.name[:30]),end='')
-        print('Elapsed: {:6s}'.format(pretty_time(time.time() - self.tstart)))
 
 class FlowField:
     """
@@ -170,6 +116,56 @@ class FlowField:
             )
 
         return x_grid, y_grid, z_grid
+
+    # def _discretize_upstream_of_turbine_domain(self):
+    #     """
+    #     Create grid points upstream of each turbine
+
+    #     Note: Function is used to generate a set of grid points upstream of each turbine
+    #         to modify Ct input into vortex cylinder blockage model and reduce over-prediction
+    #         of blockage.
+    #         - Not fully implemented as it doubles the number of points calculated in calculate
+    #             wake function.
+
+    #     To use function the following line should be added to script used to run FLORIS to return
+    #     points upstream of each turbine:
+    #         # x_grid, y_grid, z_grid = fi.floris.farm.flow_field._discretize_upstream_of_turbine_domain()
+    #     Should then input gridded points into calculate wake function.
+
+    #         - If used moving forward, should be implemented so as to avoid need to read in points to 
+    #             calculate wake.
+    #     """
+    #     xt = [coord.x1 for coord in self.turbine_map.coords]
+    #     ngrid = self.turbine_map.turbines[0].ngrid
+    #     x_grid = np.zeros((len(xt), ngrid, ngrid))
+    #     y_grid = np.zeros((len(xt), ngrid, ngrid))
+    #     z_grid = np.zeros((len(xt), ngrid, ngrid))
+
+    #     for i, (coord, turbine) in enumerate(self.turbine_map.items):
+
+    #         x1, x2, x3 = coord.x1, coord.x2, coord.x3
+
+    #         # # Save the indices of the flow field points for this turbine
+    #         # turbine.flow_field_point_indices = i * ngrid * ngrid + np.arange(
+    #         #     ngrid * ngrid
+    #         # )
+
+    #         pt = turbine.rloc * turbine.rotor_radius
+
+    #         # Grid of points two diameters upstream of each turbine
+    #         xt = [coord.x1 - 2*turbine.rotor_diameter for coord in self.turbine_map.coords]
+    #         yt = np.linspace(x2 - pt, x2 + pt, ngrid,)
+    #         zt = np.linspace(x3 - pt, x3 + pt, ngrid,)
+
+    #         x_grid[i] = xt[i]
+    #         y_grid[i] = yt
+    #         z_grid[i] = zt
+
+    #         x_grid[i], y_grid[i] = self._update_grid(
+    #             x_grid[i], y_grid[i], self.wind_map.turbine_wind_direction[i], x1, x2
+    #         )
+
+    #     return x_grid, y_grid, z_grid
 
     def _discretize_gridded_domain(
         self, xmin, xmax, ymin, ymax, zmin, zmax, resolution
@@ -593,7 +589,8 @@ class FlowField:
         This method rotates the turbine farm such that the wind
         direction is coming from 270 degrees. It then loops over the
         turbines, updating their velocities, calculating the wake
-        deflection/deficit, and combines the wake with the flow field.
+        deflection/deficit and blockage effects, and combines the wake and blockages
+        with the flow field.
 
         Args:
             no_wake (bool, optional): Flag to enable updating the turbine
@@ -606,8 +603,8 @@ class FlowField:
                 track of the number of upstream wakes a turbine is
                 experiencing. Defaults to *False*.
             Ind_Opts (dict, optional): Dictionary that contains inputs to model
-                 the resulting turbine induction zone as a result of the 
-                 blockage effect. Defaults to None.
+                 the resulting turbine induction zone as a result of blockage 
+                 effects. Defaults to None.
         """
         if points is not None:
             # add points to flow field grid points
@@ -644,19 +641,14 @@ class FlowField:
         # sort the turbine map
         sorted_map = rotated_map.sorted_in_x_as_list()
 
-        # print('Ind_Opts before: ', Ind_Opts)
-        # --- Induction Models
+        # If Ind_Opts is not defined set induction to False
         if Ind_Opts is None:
             Ind_Opts = {'induction':False}
+
+        # Update position of turbines for vortex cylinder model.
         if Ind_Opts['induction']:
             for coord,turbine in sorted_map:
-                #TODO check if we need
-                #turbine.VC_WT.update_position(coord.tolist())
-                #turbine.VC_WT.R*=Ind_Opts['Rfact'] # Hack to increase rotor size
                 turbine.update_position(coord.tolist())
-                # print('FlowField R Before: ', turbine.R)
-                # turbine.R*=Ind_Opts['Rfact'] # Hack to increase rotor size
-                # print('FlowField R After: ', turbine.R)
 
         # calculate the velocity deficit and wake deflection on the mesh
         u_wake = np.zeros(np.shape(self.u))
@@ -700,6 +692,30 @@ class FlowField:
                 rotated_x = initial_rotated_x - x_grid_offset
 
         def compute_wakes(u_wake,v_wake,w_wake,u_ind=None,v_ind=None,w_ind=None):
+            """
+            Updates the flow field based on turbine activity (wakes and blockage effects).
+
+            This method loops over the turbines, updating their velocities, calculating 
+            the wake deflection/deficit, and combines the wake with the flow field.
+
+            Args:
+                u_wake (np.array): An array that is used to update streamwise velocity at 
+                    the turbine. Updated to include wake effects produced by a turbine and
+                    combined with flow field.
+                v_wake (np.array): An array that is used to update spanwise velocity at 
+                    the turbine. Updated to include wake effects produced by a turbine and
+                    combined with flow field.
+                w_wake (np.array): An array that is used to update vertical velocity at 
+                    the turbine. Updated to include wake effects produced by a turbine and
+                    combined with flow field.
+                u_ind (np.array, optional): Array of streamwise velocity reductions due to
+                    blockages. Included in updating turbine velocities to account for blockages.
+                v_ind (np.array, optional): Array of spanwise velocity reductions due to
+                    blockages.
+                w_ind (np.array, optional): Array of veritcal velocity reductions due to
+                    blockages.
+            """
+
             self.v = np.zeros(np.shape(self.u))
             self.w = np.zeros(np.shape(self.u))
             
@@ -708,11 +724,9 @@ class FlowField:
 
             for i, (coord, turbine) in enumerate(sorted_map):
                 
-                # temp_u_wake = copy.deepcopy(u_wake)
                 # update the turbine based on the velocity at its hub
                 turbine.update_velocities(
                     u_wake-u_ind, coord, self, rotated_x, rotated_y, rotated_z
-                    # temp_u_wake-u_ind, coord, self, rotated_x, rotated_y, rotated_z
                 )
 
                 # get the wake deflection field
@@ -811,14 +825,7 @@ class FlowField:
 
                 # combine this turbine's wake into the full wake field
                 if not no_wake:
-                    # # First combine inductions (if applicable)
-                    # if not VC_Opts['induction']:
-                    #     if VC_Opts['blend']:
-                    #         u_wake = self.wake.combination_function(u_wake, ux)
-                    #         v_wake = (v_wake + uy)
-                    #         w_wake = (w_wake + uz)
-
-                    # # Then combine wake effects
+                    # Combine wake effects
                     u_wake = self.wake.combination_function(u_wake, turb_u_wake)
                     v_wake = (v_wake + turb_v_wake)
                     w_wake = (w_wake + turb_w_wake)
@@ -831,46 +838,8 @@ class FlowField:
                         self.v = self.v + turb_v_wake
                         self.w = self.w + turb_w_wake
             # END OF FOR LOOP ON TURBINES
-            print('')
+            # print('')
             return u_wake, v_wake, w_wake
-
-        # def compute_induction(u_ind = None, v_ind = None, w_ind = None):
-        #     if u_ind is None:
-        #         u_ind = np.zeros(np.shape(self.u))
-        #         v_ind = np.zeros(np.shape(self.u))
-        #         w_ind = np.zeros(np.shape(self.u))
-
-        #     for i,(coord, turbine) in enumerate(sorted_map):
-        #         #  compute Induction
-        #         if Ind_Opts['induction']:
-        #             # update vortex cylinder velocity and loading 
-        #             r_bar_cut = 0.01
-        #             CT0       = turbine.Ct
-        #             R         = turbine.rotor_diameter/2* Ind_Opts['Rfact']
-        #             nCyl      = 1 # For now
-        #             Lambda    = 30 # if >20 then no swirl
-        #             vr_bar    = np.linspace(0,1.0,100)
-        #             Ct_AD     = Ct_const_cutoff(CT0,r_bar_cut,vr_bar) # TODO change me to distributed
-        #             #turbine.VC_WT.R = R
-        #             turbine.R = R
-        #             gamma_t_Ct = None
-        #             #turbine.VC_WT.update_loading(r=vr_bar*R, Ct=Ct_AD, Lambda=Lambda, nCyl=nCyl, gamma_t_Ct=gamma_t_Ct)
-        #             turbine.update_loading(r=vr_bar*R, VC_Ct=Ct_AD, Lambda=Lambda, nCyl=nCyl, gamma_t_Ct=gamma_t_Ct)
-        #             #turbine.VC_WT.gamma_t= turbine.VC_WT.gamma_t*Ind_Opts['GammaFact']
-        #             turbine.gamma_t= turbine.gamma_t*Ind_Opts['GammaFact']
-        #             # print('VC induction - U0={:5.2f} - Ct={:4.2f} - gamma_t_bar={:7.3f} - {}/{}'.format(U0,CT0,turbine.VC_WT.gamma_t[0]/U0,i+1,len(sorted_map)))
-        #             root  = False
-        #             longi = False
-        #             tang  = True
-        #             print('.',end='')
-        #             #ux,uy,uz = turbine.VC_WT.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=True, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
-        #             ux,uy,uz = turbine.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=True, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
-        #             u_ind += ux
-        #             v_ind += uy
-        #             w_ind += uz
-        #     print('')
-
-        #     return u_ind, v_ind, w_ind
         
         def print_CT():
             for i,(coord, turbine) in enumerate(sorted_map):
@@ -880,51 +849,41 @@ class FlowField:
                 print(' U0={:6.3f} - Ct={:5.3f} - Cp={5.3f} - {}/{}'.format(U0,CT0,CP0,i+1,len(sorted_map)))
 
         #--- Main computation
-        print('Compute wakes...',end='') #
-        with Timer('Wake call,      iteration:  {:d}'.format(0)): #
-            u_wake, v_wake, w_wake = compute_wakes(u_wake,v_wake,w_wake)
-            #print_CT()
-        PowerTot=0
-        nWT=len(sorted_map)
-        # for i, (coord,turbine) in enumerate(sorted_map):
-        #     # print('turbine %d:' %i,turbine.power)
-        #     PowerTot+=turbine.power
-        # print('Avg Power per WT:',PowerTot/nWT/1000)
+        if Ind_Opts['induction']:
+            print('Compute wakes with induction...')
+        else:
+            print('Compute wakes...')
+        
+        u_wake, v_wake, w_wake = compute_wakes(u_wake,v_wake,w_wake)
 
         if Ind_Opts['induction']:
             if Ind_Opts['Ct_test']:
                 """
                 Used to test that the iteration calculations are only applied once and are not being cummulatively added.
+                Can also be used to calculate induction/wake based on specific Ct values.
                 """            
                 # Set number of iterations to one
                 Ind_Opts_temp = copy.deepcopy(Ind_Opts)
+                # Force number of iterations to one to prevent overwriting Ct
                 Ind_Opts_temp['nIter'] = 1
                 # Initialize induction velocities to zero
                 u_ind = np.zeros(np.shape(self.u))
                 v_ind = np.zeros(np.shape(self.u))
                 w_ind = np.zeros(np.shape(self.u))
 
-                # Loop through turbines and set Ct values to values calculated from initial calculate induction
-                # Recalculate induction field based on new Ct values.
-                # print('Length Sorted_Map: ', len(sorted_map))
+                # Loop through turbines and set Ct values to specified/input Ct values
+                # Calculate induction field based on new Ct values.
                 for i,(coord, turbine) in enumerate(sorted_map):
-                    print('------------Turbine %d---------------' %i)
                     ux,uy,uz = turbine.compute_induction(Ind_Opts_temp,rotated_x,rotated_y,rotated_z,CT0=self.Ct_list[i])
                     u_ind += ux
                     v_ind += uy
                     w_ind += uz
+                # Reset wakes to zero
                 u_wake, v_wake, w_wake = np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u))
-                
-                print('>>> Compute wakes',end='')
-                with Timer('Wake call'):
-                    u_wake, v_wake, w_wake = compute_wakes(u_wake,v_wake,w_wake,u_ind,v_ind,w_ind)
-                    #print_Ct()
-                PowerTot=0
-                nWT=len(sorted_map)
-                # for i, (coord,turbine) in enumerate(sorted_map):
-                #     # print('turbine %d:' %i,turbine.power)
-                #     PowerTot+=turbine.power
-                # print('Avg Power per WT:',PowerTot/nWT/1000)
+
+                # Compute wakes, accounting for blockage induction zones
+                u_wake, v_wake, w_wake = compute_wakes(u_wake,v_wake,w_wake,u_ind,v_ind,w_ind)
+
                 self.u_induct = u_ind
                 self.v_induct = v_ind
                 self.w_induct = w_ind
@@ -935,33 +894,26 @@ class FlowField:
             else:
                 if Ind_Opts['nIter'] < 1:
                     raise Exception('Minimum one iteration is required when using induction')
-                # print("---------------Ind_Opts: ",Ind_Opts)
+
+                # Iterate through and calculate induction for specified number of iterations
                 for nIt in np.arange(1,Ind_Opts['nIter']+1):
-                    print('>>> Compute induction, iteration: ', nIt, end='')
-                    with Timer('Induction call, iteration: {:d}'.format(nIt)):
-                        u_ind = np.zeros(np.shape(self.u))
-                        v_ind = np.zeros(np.shape(self.u))
-                        w_ind = np.zeros(np.shape(self.u))
 
-                        for i,(coord, turbine) in enumerate(sorted_map):
-                            # u_ind, v_ind, w_ind = compute_induction()
-                            ux,uy,uz = turbine.compute_induction(Ind_Opts,rotated_x,rotated_y,rotated_z)
-                            u_ind += ux
-                            v_ind += uy
-                            w_ind += uz
-                        u_wake, v_wake, w_wake = np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u))
-                        print('')
+                    u_ind = np.zeros(np.shape(self.u))
+                    v_ind = np.zeros(np.shape(self.u))
+                    w_ind = np.zeros(np.shape(self.u))
 
-                    print('>>> Compute wakes,    iteration',nIt,end='')
-                    with Timer('Wake call,      iteration: {:d}'.format(nIt)):
-                        u_wake, v_wake, w_wake = compute_wakes(u_wake,v_wake,w_wake,u_ind,v_ind,w_ind)
-                        #print_Ct()
-                    PowerTot=0
-                    nWT=len(sorted_map)
-                    # for i, (coord,turbine) in enumerate(sorted_map):
-                    #     # print('turbine %d:' %i,turbine.power)
-                    #     PowerTot+=turbine.power
-                    # print('Avg Power per WT:',PowerTot/nWT/1000)
+                    # Loop through and compute blockage effects for each turbine
+                    for i,(coord, turbine) in enumerate(sorted_map):
+                        ux,uy,uz = turbine.compute_induction(Ind_Opts,rotated_x,rotated_y,rotated_z)
+                        u_ind += ux
+                        v_ind += uy
+                        w_ind += uz
+
+                    # Reset wake velocity reductions to zero
+                    u_wake, v_wake, w_wake = np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u)), np.zeros(np.shape(self.u))
+
+                    # Calculate updated wake velocity reductions
+                    u_wake, v_wake, w_wake = compute_wakes(u_wake,v_wake,w_wake,u_ind,v_ind,w_ind)
 
                 self.u_induct = u_ind
                 self.v_induct = v_ind
@@ -984,8 +936,11 @@ class FlowField:
 
     def set_ct(self, Ct_list):
         """
-        Creates flowfield variable Ct_list that can be set from example file to calculate induction
-        based on Ct values. Used in checking that induction is only applied once.
+        Creates flowfield variable Ct_list that can be set from file used to run FLORIS
+        to calculate induction with specified Ct values.
+
+        Returns:
+            list: List of specified/input Ct values.
         """
         self.Ct_list = Ct_list
 
