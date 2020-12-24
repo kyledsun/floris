@@ -709,11 +709,12 @@ class FlowField:
                     the turbine. Updated to include wake effects produced by a turbine and
                     combined with flow field.
                 u_ind (np.array, optional): Array of streamwise velocity reductions due to
-                    blockages. Included in updating turbine velocities to account for blockages.
+                    blockages. Included in updating turbine velocities to account for 
+                    blockages. Defaults to None.
                 v_ind (np.array, optional): Array of spanwise velocity reductions due to
-                    blockages.
+                    blockages. Defaults to None.
                 w_ind (np.array, optional): Array of veritcal velocity reductions due to
-                    blockages.
+                    blockages. Defaults to None.
             """
 
             self.v = np.zeros(np.shape(self.u))
