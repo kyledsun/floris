@@ -84,19 +84,32 @@ class Turbine(LoggerBase):
                     the rotor radius.
                     Defaults to 0.5.
 
-                    Need to Update _________________________________________
-                    - R: rotor radius
-                    - r_hub: position of the turbine hub in global coordinate system
-                    - e_shaft_yaw0: unit vector along the shaft (untitled for now), going downwind, when the turbine has zero yaw
-                    - e_vert: unit vertical vector, about which positive yawing is done
-                    - U0: Free stream velocity in global coordinates (can be changerd with `update_wind`)
-                    - Ct: Thrust coefficient (can be changed with `update_loading`)
-                    - Ground: Include ground effect in calculations
-                    - Model: one of ['VC','VCFF', 'VD', 'SS']
-                            'VCFF': Vortex cylinder with far-field approximation (fastest)
-                            'VC': Vortex cylinder
-                            'SS': Self similar model of Troldborg et al.  (not good close to rotor)
-                            'VD': Self similar model of Troldborg et al.  (not good close to rotor)
+        - R (float): rotor radius
+        - r_hub (list): position of the turbine hub in the global coordinate system
+        - e_shaft_yaw0 (list): unit vector along the shaft of the turbine with zero yaw
+        - e_vert (list): unit vertical vector, rotation vector for positive yaw
+        - e_shaft_g0 (np.array): global coordinate unit vector along shaft of the turbine
+            non-yawed.
+        - e_vert_g (np.array): global coordinate unit vector for vertical direction
+        - e_horz_g (np.array): global coordinate unit vector for streamwise wind direction
+        - T_c2wt (np.array): array describing transformation matrix for cylindrical (vortex
+            cylinder) coordinate system to wind turbine coordinate system.
+        - U0_g (np.array): Free stream velocity in global coordinate system (updated with
+            `update wind`)
+        - r (np.array): radial coordinates at which VC_Ct or Gamma are provided
+        - gamma_t (): tangenetial vorticity of the vortex cylinder.
+        - Gamma_r (): radial vorticity of the vortex cylinder
+        - Lambda (float): tip speed ratio
+        - chi (float): unit vector for float defining the angle between the axis of the
+            vortex cylinder wake and the vector normal to the turbine rotor.
+        - Ground (bool): Include ground effect in vortex cylinder calculations. Models 
+            second vortex cylinder to prevent vertical flow through the ground.
+        - Model (str): one of ['VC','VCFF', 'VD', 'SS']
+                'VCFF': Vortex cylinder with far-field approximation (fastest)
+                'VC': Vortex cylinder
+                'SS': Self similar model of Troldborg et al.  (not good close to rotor)
+                'VD': Self similar model of Troldborg et al.  (not good close to rotor)
+            Defaults to 'VC'.
 
 Returns:
         Turbine: An instantiated Turbine object.
@@ -117,7 +130,7 @@ Returns:
         self.tilt_angle = properties["tilt_angle"]
         self.tsr = properties["TSR"]
 
-        # Vortex turbine (for induction computation) parameters
+        # Vortex turbine parameters (for induction computation)
         self.R = self.rotor_diameter/2
         self.r_hub = [0,0,self.hub_height]
         self.e_shaft_yaw0 = [1,0,0]
@@ -134,17 +147,14 @@ Returns:
         # Transformation matrix from cylindrical to wind turbine coordinate system
         self.T_c2wt = np.asarray([[0,0,1,1,0,0,0,1,0]]).reshape(3,3)
         
+        # Set initial parameters
         self.set_yaw_angle(self.yaw_angle)
         self.update_position(self.r_hub)
         self.U0_g = np.asarray([10,0,0]).ravel().reshape(3,1)
-        #self.update_wind([0,0,10])
-        self.name=''
         self.r=None
-        self.gamma_t=None
         self.gamma_t=None
         self.Gamma_r=None
         self.Lambda=np.inf
-        self.Ground=False# Ground effect will be included in calculation of induced velocity
         self.chi=None
         self.Model='VC'
 
@@ -404,6 +414,7 @@ Returns:
         """
         # reset the waked velocities
         local_wind_speed = flow_field.u_initial - u_wake
+        self.locWindSpeed = local_wind_speed
         self.velocities = self.calculate_swept_area_velocities(
             local_wind_speed, coord, rotated_x, rotated_y, rotated_z
         )
@@ -446,10 +457,10 @@ Returns:
 
     def compute_induction(self, Ind_Opts, rotated_x, rotated_y, rotated_z, CT0=None):
         """ 
-        Computes induction from the turbine as a result of the blockage effect. Applied to velocity 
-        field to simulate the induction zone of a turbine.
+        Computes induction from the turbine as a result of blockage effects. Applied to velocity 
+        field to simulate the reduction in velocity in the induction zone of a turbine.
 
-        INPUTS:
+        Args:
             Ind_Opts (dict): Dictionary of inputs to model the resulting 
                 turbine induction zone as a result of the blockage effect.
             rotated_x (np.array): The x-coordinates of the flow field grid
@@ -458,19 +469,20 @@ Returns:
                 rotated so the new x axis is aligned with the wind direction.
             rotated_z (np.array): The z-coordinates of the flow field grid
                 rotated so the new x axis is aligned with the wind direction.
+            CT0 (float): Thrust coefficient at the turbine rotor. Defaults to
+                none.
         """
         self.Ind_Opts = Ind_Opts
 
         if Ind_Opts['induction']: # Can remove (won't be called unless induction)
+
             if Ind_Opts['Ct_test']:
-                print('Ct-test')
                 # update vortex cylinder velocity and loading
                 r_bar_cut = 0.11
                 r_bar_tip = 0.9
                 if CT0 is None:
                     CT0       = self.Ct
-                print('CT0: ', CT0)
-                self.R = self.rotor_diameter/2*Ind_Opts['Rfact']
+                self.R = self.rotor_diameter/2*Ind_Opts['Rfact'] # Hack to increase rotor size
                 nCyl      = 1 # For now
                 Lambda    = np.inf
                 vr_bar    = np.linspace(0,1.0,100)
@@ -481,28 +493,26 @@ Returns:
                 root  = False
                 longi = False
                 tang  = True
-                # print('.',end='')
-                ux,uy,uz = self.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=False, Decay=False, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
+                # Compute blockage velocity reductions
+                ux,uy,uz = self.compute_u(rotated_x,rotated_y,rotated_z,root=root,longi=longi,tang=tang, only_ind=True, no_wake=True, Decay=True, Model = Ind_Opts['Model'], ground=Ind_Opts['Ground'],R_far_field=Ind_Opts['R_far_field'])
+            
             else:
                 # update vortex cylinder velocity and loading
                 r_bar_cut = 0.01
-                # r_bar_cut = 0.11
-                # r_bar_tip = 0.9
-                # print("------Ct:", self.Ct)
                 if CT0 is None:
-                    CT0       = self.Ct
-                # print('CT0: ', CT0)
-                self.R = self.rotor_diameter/2*Ind_Opts['Rfact']
+                    CT0       = self.Ct #*.5
+                    ### Uncomment to tune blockage model by reducing Ct with upstream Ct factor
+                    # coord = self.r_hub.flatten()
+                    # locWS = self.locWindSpeed
+                    # CT0       = self.Ct * (self.Ct**2 / (self.upstream_ct(locWS, coord, rotated_x, rotated_y, rotated_z))**2)
+                self.R = self.rotor_diameter/2*Ind_Opts['Rfact'] # Hack to increase rotor size
                 nCyl      = 1 # For now
                 Lambda    = 30 # if >20 then no swirl
-                # Lambda    = np.inf
                 vr_bar    = np.linspace(0,1.0,100)
                 Ct_AD     = Ct_const_cutoff(CT0,r_bar_cut,vr_bar) # TODO change me to distributed
-                # Ct_AD     = Ct_const_cutoff(CT0,r_bar_cut,vr_bar,r_bar_tip) # TODO change me to distributed
                 gamma_t_Ct = None
                 self.update_loading(r=vr_bar*self.R, VC_Ct=Ct_AD, Lambda=Lambda, nCyl=nCyl, gamma_t_Ct=gamma_t_Ct)
                 self.gamma_t= self.gamma_t*Ind_Opts['GammaFact']
-                # print('gamma_t: ', self.gamma_t)
                 root  = False
                 longi = False
                 tang  = True
@@ -511,27 +521,78 @@ Returns:
 
         return ux,uy,uz
 
+    # def upstream_ct(self, local_wind_speed, coord, x, y, z):
+    #     """
+    #     This method calculates and returns the wind speeds at each
+    #     rotor swept area grid point two diameters upstream of the 
+    #     turbine, interpolated from the flow field grid.
+
+    #     Args:
+    #         local_wind_speed (np.array): The wind speed at each grid point in
+    #             the flow field (m/s).
+    #         coord (:py:obj:`~.utilities.Vec3`): The coordinate of the turbine.
+    #         x (np.array): The x-coordinates of the flow field grid.
+    #         y (np.array): The y-coordinates of the flow field grid.
+    #         z (np.array): The z-coordinates of the flow field grid.
+
+    #     Returns:
+    #         np.array: The wind speed at each rotor grid point
+    #         for the turbine (m/s).
+    #     """
+    #     u_at_turbine = local_wind_speed
+
+    #     # Sort by distance
+    #     flow_grid_points = np.column_stack([x.flatten(), y.flatten(), z.flatten()])
+    #     # print(flow_grid_points)
+
+    #     # Set up a grid array
+    #     y_array = np.array(self.grid)[:, 0] + coord[1]
+    #     z_array = np.array(self.grid)[:, 1] + self.hub_height
+    #     x_array = np.ones_like(y_array) * (coord[0]-2*self.rotor_diameter)
+    #     # print('upstream x: ', x_array)
+    #     grid_array = np.column_stack([x_array, y_array, z_array])
+    #     # print(grid_array)
+
+    #     ii = np.argmin(distance_matrix(flow_grid_points, grid_array), axis=0)
+
+    #     vel = np.array(u_at_turbine.flatten()[ii])
+        
+    #     data = vel[np.where(~np.isnan(vel))]
+
+    #     avg_vel = np.cbrt(np.mean(data ** 3))
+    #     if np.isnan(avg_vel):
+    #         avg_vel = 0
+    #     elif np.isinf(avg_vel):
+    #         avg_vel = 0
+        
+    #     ct_upstream = self._fCt(avg_vel) * cosd(self.yaw_angle)
+    #     return ct_upstream
+
     def update_loading(self,r=None,VC_Ct=None,Gamma=None,Lambda=None,nCyl=1,gamma_t_Ct=None):
-        """
-        VC_Ct differs from Ct in that for a vortex cylinder VC_Ct is constant along the blade and
-        zero at the root and the tip
-        """
         """ 
         Computes relevant parameters when the turbine loading is updated, mainly, gamma_t, 
         the intensity of the tangential vorticity sheet.
         The ditributon will be determined based on the inputs, with one these three approaches:
-           1. VC_Ct(r) distribution
-           2. Gamma(r) distribution
-           3. gamma_t(VC_Ct(r)) function
+            1. VC_Ct(r) distribution
+            2. Gamma(r) distribution
+            3. gamma_t(VC_Ct(r)) function
 
-        INPUTS:
-          r: radial coordinates at which VC_Ct or Gamma are provided
-          VC_Ct: local thrust coefficient (VC_Ct(r), array), or total thrust coefficient (CT, scalar)
-          Gamma:  bound circulation (Gamma(r), array), or total rotor circulation (Gamma_tot, scalar)
-          Lambda: tip speed ratio (assumed infinite if None)
-          nCyl : number of cylindrical model used in the spanwise direction (default is 1)
-                 The circulation (gamma_t) will be determined for each of the radial cylinder
-          gamma_t_Ct: function that provides gamma_t as function of VC_Ct (or gamma_t as function of CT)
+        Args:
+            r (array): radial coordinates at which VC_Ct or Gamma are provided
+            VC_Ct (array, optional): local thrust coefficient (VC_Ct(r), array), or total 
+                thrust coefficient (CT, scalar)
+            Gamma (array, optional):  bound circulation (Gamma(r), array), or total rotor
+                circulation (Gamma_tot, scalar)
+            Lambda (float, optional): tip speed ratio (assumed infinite if None)
+            nCyl (float, optional): number of cylindrical model used in the spanwise 
+                direction (default is 1). The circulation (gamma_t) will be determined for
+                each of the radial cylinder
+            gamma_t_Ct (array, optional): function that provides gamma_t as function of 
+                VC_Ct (or gamma_t as function of CT)
+
+        VC_Ct differs from Ct in that for a vortex cylinder VC_Ct is constant along the blade and
+        zero at the root and the tip. Can also be adjusted to tune blockage model without affecting
+        wake models.
         """
         # Update vortex cylinder average velocity at turbine
         self.U0_g = np.asarray([self.average_velocity,0,0]).ravel().reshape(3,1)
@@ -561,8 +622,6 @@ Returns:
         if Lambda is None:
             raise Exception('Provide `Lambda` for update_loading. (Note: `Lambda=np.Inf` supported) ')
         Omega = Lambda*U0/self.R
-        #print('U0',U0)
-        #print('VC_Ct',VC_Ct)
 
         # Computing and storing gamma distribution and loading
         if gamma_t_Ct is not None:
@@ -587,26 +646,44 @@ Returns:
         self.r=r
         self.VC_Ct=VC_Ct
 
-    def compute_u(self, Xg, Yg, Zg, only_ind=False, longi=False, tang=True, root=False, no_wake=False, ground=None, Decay=False, Model=None, R_far_field=6): 
+    def compute_u(self, Xg, Yg, Zg, only_ind=True, longi=False, tang=True, root=False, no_wake=False, ground=True, Decay=True, Model=None, R_far_field=6): 
         """ 
-        INPUTS:
-            Xg, Yg, Zg: Control points in global coordinates where the flow is to be computed. 
-            only_ind: if true, only induction is returned (without the free stream)
-
-            longi, tang, root: booleans specifying which component of vorticity is considered.
-                               Default is `tang` only
-            no_wake: boolean, if true: the induced velocity in the wake is set to 0. 
-                     Typically set to true when combining with wake models.
-
-            Model : string in ['VC','VCFF','SS','VD']
+        Args:
+            Xg (np.array): x-coordinates of the flow field grid in the global coordinate
+                system rotated so that the x-axis is aligned with input wind direction 
+                where the flow is to be computed.
+            Yg (np.array): y-coordinates of the flow field grid in the global coordinate
+                system rorated so that the x-axis is aligned with input wind direction 
+                where the flow is to be computed.
+            Zg (np.array): z-coordinates of the flow field grid in the global coordinate
+                system rotated so that the x-axis is aligned with input wind direction
+                where the flow is to be computed.
+            only_ind (boolean, optional): If True, only induction velocity reduction is
+                returned. If False, the velocities returned are the combined free stream
+                and blockage velocities. Defaults to True.
+            longi (boolean, optional): Specifies if the longitudinal tip-vorticity 
+                component of vorticity is considered. Defaults to False.
+            tang (boolean, optional): Specifies if the tangential component of vorticity
+                is considered. Defaults to True.
+            root (boolean, optional): Specifies if the root vortex is considered.
+                Defaults to False.
+            no_wake (boolean, optional): If True: the induced velocity in the wake 
+                modelled by the vortex clinder model is set to 0. Default is set to
+                True to combine with GCH wake model.
+            ground (boolean, optional): If True: models second vortex cylinder to
+                counteract vertical flow through the ground. Defaults to True.
+            Decay (boolean, optional): Applies decay to downstream velocity reductions
+                from vortex cylinder model as distance from turbine rotor increases.
+                Default is set to True.
+            Model (str,optional): string in ['VC','VCFF','SS','VD']
                    'VCFF': Vortex cylinder with far-field approximation (fastest)
                    'VC': Vortex cylinder
                    'SS': Self similar model of Troldborg et al.  (not good close to rotor)
                    'VD': Self similar model of Troldborg et al.  (not good close to rotor)
+            R_far_field (float): Defines distance of far field approximation. Default is
+                set to 6.
         """
         # --- Optional argument overriding self
-        if ground is None:
-            ground=self.Ground
         if Model is None:
             Model=self.Model
 
@@ -620,14 +697,12 @@ Returns:
         #     self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos)
         
         # TODO TODO chi needs induction effect!
-        # self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos)
-        # print('Chi: ', self.chi)
         if self.VC_Ct > 1:
             self.VC_Ct = 1
+        
+        # Equation (1) in E. Branlard, A. Forsting - Assessing the blockage effect of wind turbines and wind farms
+        # using an analytical vortex model - Wind Energy, 2020 (DOI: 10.1002/we.2546)
         self.chi= np.sign(e_vert_c.ravel()[1])* (self.yaw_wind-self.yaw_pos) * (1+0.3*(1-np.sqrt(1-self.VC_Ct[0])))
-        # print('Chi_: ', self.chi)
-        # self.chi = self.chi*1.5
-        # print('Chi: ', self.chi)
 
         if self.gamma_t is None:
             raise Exception('Please set loading with `update_loading` before calling `compute_u`')
@@ -666,13 +741,16 @@ Returns:
                 if tang and (self.gamma_t!=0):
                     if np.abs(self.chi)>1e-7:
                         if Model =='VC':
+                            # Equation 8 in E. Branlard, A. Forsting - Assessing the blockage effect of wind turbines and wind farms
+                            # using an analytical vortex model - Wind Energy, 2020 (DOI: 10.1002/we.2546)
                             uxc0,uyc0,uzc0 = svc_tang_u(Xc0,Y,Zc0,gamma_t=self.gamma_t,R=self.R,m=m,polar_out=False)
-                            # print('-----------------Vortex Cylinder Skewed Model------------------')
                         else:
                             raise NotImplementedError('Model '+Model + ', with yaw.')
                     else:
                         if Model =='VC':
-                                uxc0,uyc0,uzc0 = vc_tang_u        (Xc0,Y,Zc0, gamma_t=self.gamma_t, R=self.R, polar_out=False)
+                                # Equations 4-6 in E. Branlard, A. Forsting - Assessing the blockage effect of wind turbines and wind farms
+                                # using an analytical vortex model - Wind Energy, 2020 (DOI: 10.1002/we.2546)
+                                uxc0,uyc0,uzc0 = vc_tang_u(Xc0,Y,Zc0, gamma_t=self.gamma_t, R=self.R, polar_out=False)
                         elif Model =='VCFF':
                             uxc0,uyc0,uzc0 = vc_tang_u_doublet(Xc0,Y,Zc0, gamma_t=self.gamma_t, R=self.R, polar_out=False,r_bar_Cut=R_far_field)
                         elif Model =='VD':
@@ -707,8 +785,6 @@ Returns:
                 nWT = 1
                 # Control points are directly translated by routine
                 gamma_t = self.gamma_t.reshape((nWT,nr))
-#                 print('r      ',self.r)
-#                 print('gamma_t',gamma_t)
                 if self.gamma_l is not None:
                     gamma_l = self.gamma_l.reshape((nWT,nr))
                 vR      = self.r.reshape((nWT,nr))
@@ -731,19 +807,6 @@ Returns:
                     uzc += uzc0
             else:
                 raise NotImplementedError('Model'+Model, 'with multiple cylinders')
-#         if no_wake:
-# #             uxc[:]=0
-# #             uyc[:]=0
-# #             uzc[:]=1
-#             # Zero wake induction
-#             bDownStream=Zc0>=-0.20*self.R
-# #             bDownStream=Zc0>=0
-#             Rc = np.sqrt(Xc0**2 + Yc0**2)
-#             bRotorTube = Rc<self.R*1.001 # we give a margin since VD and VC have fields very dissimilar at R+/-eps
-#             bSelZero = np.logical_and(bRotorTube,bDownStream)
-#             uxc[bSelZero]=0
-#             uyc[bSelZero]=0
-#             uzc[bSelZero]=0
 
         # Transform back to global
         uxg = T_c2g[0,0]*uxc+T_c2g[0,1]*uyc+T_c2g[0,2]*uzc
@@ -763,8 +826,8 @@ Returns:
             uzg*=XDecay
 
         if no_wake:
-            # Zero wake induction
-            # Remove wake downstream of turbine (include small region in front of turbine to ensure induction does not affect free stream velocity)
+            # Remove vortex cylinder wake downstream of turbine and mask in front of the turbine to prevent double counting of
+            # blockages in wake models
             bDownStream=Xg>=(Yg-self.r_hub[1])*np.tan(-self.yaw_pos)-0.20*self.R+self.r_hub[0]
             # Only remove wake if within vortex cylinder radius
             # Rc = np.sqrt((Yg-self.r_hub[1])**2 + (Zg-self.hub_height)**2)
@@ -789,12 +852,13 @@ Returns:
             # uyg[bSelZero]=0
             # uzg[bSelZero]=0
 
-        # Add free stream if requested
         if not only_ind:
+            # Include free stream
             uxg += self.U0_g[0]
             uyg += self.U0_g[1]
             uzg += self.U0_g[2]
         return uxg,uyg,uzg
+
     def TKE_to_TI(self, turbulence_kinetic_energy):
         """
         Converts a list of turbulence kinetic energy values to
