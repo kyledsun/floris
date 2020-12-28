@@ -850,10 +850,10 @@ class FlowField:
                 print(' U0={:6.3f} - Ct={:5.3f} - Cp={5.3f} - {}/{}'.format(U0,CT0,CP0,i+1,len(sorted_map)))
 
         #--- Main computation
-        if Ind_Opts['induction']:
-            print('Compute wakes with induction...')
-        else:
-            print('Compute wakes...')
+        # if Ind_Opts['induction']:
+        #     print('Compute wakes with induction...')
+        # else:
+        #     print('Compute wakes...')
         
         u_wake, v_wake, w_wake = compute_wakes(u_wake,v_wake,w_wake)
 
